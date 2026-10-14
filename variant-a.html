@@ -1,0 +1,1006 @@
+<!doctype html>
+<!--
+  UA WELL /profile — VARIANT A "Telegram-native"
+  Telegram's own profile-header grammar (PeerInfoHeaderNode / ProfileActivity constants), in UA WELL brand.
+
+  SCROLL CHOREOGRAPHY (390x844, s = window.scrollY, all scroll-linked values follow scroll 1:1, never sprung)
+  ── PHOTO HERO ─────────────────────────────────────────────────────────────────────────────────
+  Box H = colW / max(4/5, min(1, w/h))  → 488 for 3:4 & 2:3 (4:5 box), 390 for 1:1. object-position 50% 30%.
+  Layout (doc y, H=488): band 228..488 · name 300..336 · subtitle 340..360 · badges 368..390 · tiles 410..468
+  photo layer (fixed, z:-1) translateY = -0.5·min(s,H)   (Telegram -contentOffset/2). scale = 1 ALWAYS for s>0
+                                                           (device review rejected forward zoom).
+  photo dim veil         opacity 0 → 0.30           over s 0..300
+  top scrim (0..128px)   constant; fades out 200ms when the bar turns on
+  protection band        lives in the CONTENT layer (moves 1x with the name); black 0→.66 + 170px progressive blur
+  subtitle + badges      opacity 1 → 0              over s 120..200   (metaTop-220 .. metaTop-140)
+  tiles                  opacity 1 → 0, scale 1→.94 over s 250..310   (tilesTop-160 .. tilesTop-100)
+  name                   position:sticky top = 70 - h/2 (centre on Telegram pill row y≈70) → pins at s = pin = 248
+                         JS morph only in last 96px: s 152..248, smoothstep-eased → scale 1 → min(0.567, slot/w) (30px→≤17px)
+                         and x from left-aligned (16px) → centred. slot = min(150, pill gap − 2·10). Centred on screen if that
+                         clears both pills by 10px, else centred in the pill gap (390: x 141..284). k < .45 → crossfade fallback
+  bar (frosted)          triggered at s ≥ H-112 (=376; off below 368): opacity 0→1 in 200ms ease-in-out,
+                         name colour white→ink, scrim off, status glyphs dark (light theme); photo layer, band and
+                         no-photo cover fade to 0 in the same 200ms so the glass never sits over dark photo pixels
+  ── PULL-DOWN (s<0 or gesture at s=0) ───────────────────────────────────────────────────────────
+  pull p: photo scale = (H+p)/H, transform-origin top; content translateY(p) (gesture path only; native bounce
+  already moves content). One light haptic at p ≥ 32 (re-arms below 16). Gesture: rubberBand(dy, innerH, c=.55).
+  Release: critically damped spring ω=√555≈23.6 (stiffness 555, damping 47.1, mass 1) back to 0, ~0.38s.
+  window.__pv.setPull(px) renders the same state statically.
+  ── NO-PHOTO HERO (H0 = 414, Telegram colour-profile cover) ─────────────────────────────────────
+  cover 1000px tall, bottom-anchored (top = H0-1000) so pulls reveal more gradient, never a seam.
+  avatar 112px, top 100 (centre y 156); name 226..262 centred; tiles 334..392.
+  f = clamp(s / pin), pin = 226-52 = 174
+  avatar  translateY 17·f, scale 1 → .55, blur 0→8px over f .2..7, opacity 1→0 over f .5..1
+  rings   5 rings × 6 glyphs at r = 78,106,134,162,190 (odd rings +30°); ring i pulls in to r=20 and fades over
+          f ∈ [(4-i)·.1, (4-i)·.1+.225]  → outer first, finished by f=.625. Glyphs whose centre is 20..64px below the
+          avatar centre fade out (rest alpha × (1 − ilerp(dy,20,64))) so the name/meta/badges never sit on the pattern
+  name    sticky, scale 1 → .567 over s 78..174 (centred origin)
+  meta    fade s 60..140 · tiles fade s 182..242 · bar at s ≥ H0-112 (=302)
+  ── REDUCED MOTION (prefers-reduced-motion or ?motion=reduced) ──────────────────────────────────
+  no parallax (photo scrolls 1:1 with content), no scale/stretch/ring travel/tile scale/press scale.
+  name is NOT sticky: hero name fades 1→0 over s pin-60..pin, bar title fades 0→1 over s pin..pin+50.
+  Bar, dim, scrim, entrances = opacity only. Bounce gap behind the photo is filled with #111.
+  ── TAPS (not scroll-linked) ─────────────────────────────────────────────────────────────────────
+  spring {stiffness 555, damping 47.1, mass 1} ≈ cubic-bezier(.22,1,.36,1) 380ms; press: scale .97 in 100ms.
+-->
+<html lang="uk" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Профіль — Telegram-native</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@400..700&display=swap" rel="stylesheet">
+<script>
+  // Resolve theme before first paint (no flash).
+  (function () {
+    try {
+      var q = new URLSearchParams(location.search);
+      var t = q.get('theme') || 'system';
+      if (t === 'system') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+    } catch (e) {}
+  })();
+</script>
+<style>
+:root {
+  --bg: #FAF9F7; --surface: #FFFFFF; --text: #1C1C1C; --muted: #57534E; --tertiary: #78716C;
+  --hair: #ECEAE5; --line: #DCD8D0; --fill: #FF8912; --ink: #B45309; --on-fill: #1C1C1C;
+  --press: rgba(28,25,23,.055);
+  --card-shadow: 0 0 0 .5px rgba(28,25,23,.06), 0 1px 2px rgba(28,25,23,.04), 0 6px 20px -8px rgba(28,25,23,.08);
+  --chip-bg: #FFFFFF; --chip-line: #DCD8D0;
+  --tile-tint: rgba(255,137,18,.14);
+  --seg-track: #F1EFEA; --seg-thumb: #FFFFFF; --seg-shadow: 0 1px 2px rgba(0,0,0,.06), 0 3px 8px rgba(0,0,0,.08);
+  --bar-bg: rgba(250,249,247,.95); --tab-bg: rgba(250,249,247,.92); --tab-line: rgba(28,25,23,.08);
+  --home: #1C1C1C;
+  --cover-base: #E86F00;
+  --cover-glow: radial-gradient(ellipse 300px 330px at 50% var(--av-y, 784px), #FFB25C 0%, #FF9A30 34%, #FF8912 58%, #E86F00 100%);
+  --cover-glyph: rgba(28,28,28,.16);
+  --halo: radial-gradient(closest-side, rgba(255,255,255,.42), rgba(255,255,255,.12) 55%, transparent);
+  --initials-bg: #FFE3C2; --initials-fg: #1C1C1C; --avatar-ring: rgba(255,255,255,.92);
+  --avatar-shadow: 0 10px 28px -6px rgba(120,53,15,.35);
+  --cover-text: #1C1C1C; --cover-muted: rgba(28,28,28,.68);
+  --cover-tile: rgba(255,255,255,.30); --cover-tile-line: rgba(255,255,255,.38); --cover-tile-fg: #1C1C1C;
+  --cover-cta-bg: #1C1C1C; --cover-cta-fg: #FFFFFF;
+  --cover-badge: rgba(255,255,255,.42); --cover-badge-fg: #1C1C1C;
+  --admin-on-cover-bg: #1C1C1C; --admin-on-cover-fg: #FFFFFF;
+  --focus: #B45309;
+  --toast-bg: rgba(28,28,30,.92); --toast-fg: #F5F5F4;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #181819; --surface: #242426; --text: #F5F5F4; --muted: #B8B3AD; --tertiary: #8F8A82;
+  --hair: #2C2C2F; --line: #3A3A3E; --ink: #FF8912;
+  --press: rgba(255,255,255,.06);
+  --card-shadow: inset 0 0 0 .5px rgba(255,255,255,.06), inset 0 1px 0 rgba(255,255,255,.03);
+  --chip-bg: #2C2C2F; --chip-line: #3A3A3E;
+  --tile-tint: rgba(255,137,18,.18);
+  --seg-track: #2C2C2F; --seg-thumb: #3A3A3E; --seg-shadow: 0 1px 2px rgba(0,0,0,.3), 0 3px 8px rgba(0,0,0,.25);
+  --bar-bg: rgba(24,24,25,.93); --tab-bg: rgba(24,24,25,.9); --tab-line: rgba(255,255,255,.07);
+  --home: #F5F5F4;
+  --cover-base: #181819;
+  --cover-glow: radial-gradient(ellipse 330px 360px at 50% var(--av-y, 784px), rgba(255,137,18,.42) 0%, rgba(255,137,18,.14) 48%, rgba(255,137,18,0) 100%);
+  --cover-glyph: rgba(255,137,18,.22);
+  --halo: radial-gradient(closest-side, rgba(255,170,90,.22), rgba(255,137,18,.06) 55%, transparent);
+  --initials-bg: #3A2A1C; --initials-fg: #F5F5F4; --avatar-ring: #242426;
+  --avatar-shadow: 0 10px 28px -6px rgba(0,0,0,.6);
+  --cover-text: #F5F5F4; --cover-muted: rgba(245,245,244,.70);
+  --cover-tile: rgba(255,255,255,.08); --cover-tile-line: rgba(255,255,255,.10); --cover-tile-fg: #F5F5F4;
+  --cover-cta-bg: #FF8912; --cover-cta-fg: #1C1C1C;
+  --cover-badge: rgba(255,255,255,.10); --cover-badge-fg: #F5F5F4;
+  --admin-on-cover-bg: #FF8912; --admin-on-cover-fg: #1C1C1C;
+  --focus: #FF8912;
+  --toast-bg: rgba(58,58,62,.94); --toast-fg: #F5F5F4;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #181819; --surface: #242426; --text: #F5F5F4; --muted: #B8B3AD; --tertiary: #8F8A82;
+    --hair: #2C2C2F; --line: #3A3A3E; --ink: #FF8912; --press: rgba(255,255,255,.06);
+    --card-shadow: inset 0 0 0 .5px rgba(255,255,255,.06); --chip-bg: #2C2C2F; --chip-line: #3A3A3E;
+    --seg-track: #2C2C2F; --seg-thumb: #3A3A3E; --bar-bg: rgba(24,24,25,.93); --tab-bg: rgba(24,24,25,.9);
+    --home: #F5F5F4; --focus: #FF8912; color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px; line-height: 1.4; -webkit-font-smoothing: antialiased; overscroll-behavior: none;
+  touch-action: manipulation; transition: background-color .25s ease;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 12px; }
+.col-fixed { position: fixed; left: 0; right: 0; margin: 0 auto; max-width: 430px; }
+
+/* ───────────── simulated Telegram fullscreen chrome (system, not design) ───────────── */
+.tg-chrome { top: 0; height: 92px; z-index: 100; pointer-events: none; color: #fff; }
+.tg-status { position: absolute; inset: 0 0 auto 0; height: 47px; display: flex; align-items: center; justify-content: space-between; padding: 6px 30px 0 44px; font: 600 16px/1 -apple-system, 'SF Pro Text', 'Geist', sans-serif; letter-spacing: -.01em; transition: color .2s ease; }
+.tg-island { position: absolute; top: 11px; left: 50%; width: 122px; height: 35px; margin-left: -61px; border-radius: 20px; background: #000; }
+.tg-glyphs { display: flex; gap: 6px; align-items: center; }
+.tg-glyphs svg { display: block; fill: currentColor; }
+.tg-pill { position: absolute; top: 54px; height: 32px; border-radius: 16px; display: flex; align-items: center; gap: 6px; padding: 0 13px 0 11px; color: #fff; font: 500 15px/1 -apple-system, 'SF Pro Text', 'Geist', sans-serif; background: rgba(40,40,42,.42); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.18); }
+.tg-pill svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.tg-pill.l { left: 16px; } .tg-pill.r { right: 16px; gap: 14px; padding: 0 12px; }
+:root.chrome-ink .tg-status { color: #1C1C1C; }
+.home-ind { bottom: 0; height: 34px; z-index: 101; pointer-events: none; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 8px; }
+.home-ind::after { content: ''; width: 134px; height: 5px; border-radius: 3px; background: var(--home); opacity: .9; }
+
+/* ───────────── photo layer (fixed, behind the document) ───────────── */
+.photo-layer { top: 0; z-index: -1; height: var(--H, 488px); pointer-events: none; }
+:root.no-photo .photo-layer, :root.no-photo .band, :root.no-photo .top-scrim, :root.no-photo .bounce-fill { display: none; }
+.photo-move, .photo-scale { position: absolute; inset: 0; transform-origin: 50% 0; will-change: transform; }
+.photo-scale { background: #3B3530; }
+.photo-scale img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; opacity: 0; transition: opacity .35s ease; }
+.photo-scale img.loaded { opacity: 1; }
+.photo-dim { position: absolute; inset: 0; background: #000; opacity: 0; }
+.bounce-fill { top: 0; height: 40vh; z-index: -2; background: #111; pointer-events: none; }
+.top-scrim { top: 0; height: 128px; z-index: 20; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.40) 0%, rgba(0,0,0,.18) 55%, transparent); transition: opacity .2s ease-in-out; }
+:root.bar-on .top-scrim { opacity: 0; }
+/* bar on → the photo, its band and the no-photo cover fade out under the glass, so the frosted bar never
+   sits over dark pixels (no grey "smear" at s≈376..470) and the photo's bottom edge disappears into --bg */
+.photo-layer, .band { transition: opacity .2s ease-in-out; }
+:root.bar-on .photo-layer, :root.bar-on .band, :root.bar-on .cover, :root.bar-on .bounce-fill { opacity: 0; }
+
+/* ───────────── frosted bar (Telegram edge effect) ───────────── */
+.bar { top: 0; height: 104px; z-index: 30; pointer-events: none; }
+.bar-glass { position: absolute; inset: 0; opacity: 0; transition: opacity .2s ease-in-out;
+  background: var(--bar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  -webkit-mask-image: linear-gradient(#000 84%, transparent); mask-image: linear-gradient(#000 84%, transparent); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .bar-glass { background: var(--bg); } }
+:root.bar-on .bar-glass { opacity: 1; }
+.bar-title { position: absolute; left: 50%; top: 52px; height: 36px; width: 150px; margin-left: -75px; text-align: center; font-weight: 600; font-size: 16px; line-height: 36px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; letter-spacing: -.01em; transition: color .2s ease-in-out; }
+:root.no-photo .bar-title { color: var(--cover-text); text-shadow: none; }
+:root.bar-on .bar-title { color: var(--text); text-shadow: none; }
+
+/* ───────────── the document ───────────── */
+.page { position: relative; max-width: 430px; margin: 0 auto; overflow-x: clip; padding-bottom: calc(84px + 34px + 28px); }
+.page.pulling { will-change: transform; }
+
+/* band: travels with the name (content layer), progressive blur under the name */
+.band { position: absolute; left: 0; right: 0; top: calc(var(--H, 488px) - 260px); height: 260px; pointer-events: none;
+  background: linear-gradient(to top, rgba(0,0,0,.66) 0%, rgba(0,0,0,.56) 30%, rgba(0,0,0,.44) 58%, rgba(0,0,0,.2) 80%, rgba(0,0,0,0) 100%); }
+.band-blur { position: absolute; left: 0; right: 0; bottom: 0; height: 190px; background: rgba(0,0,0,.08);
+  -webkit-backdrop-filter: blur(16px) saturate(120%); backdrop-filter: blur(16px) saturate(120%);
+  -webkit-mask-image: linear-gradient(to top, #000 40%, transparent); mask-image: linear-gradient(to top, #000 40%, transparent); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .band-blur { background: rgba(0,0,0,.18); } }
+
+/* no-photo cover */
+.cover { position: absolute; left: 0; right: 0; height: 1000px; top: calc(var(--H0, 414px) - 1000px); overflow: hidden; pointer-events: none;
+  background: var(--cover-glow), var(--cover-base); transition: background-color .25s, opacity .2s ease-in-out; }
+:root.has-photo .cover, :root.has-photo .avatar-wrap { display: none; }
+.cover::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: rgba(0,0,0,.04); }
+.halo { position: absolute; left: 50%; width: 300px; height: 300px; margin: -150px 0 0 -150px; top: var(--av-y, 784px); background: var(--halo); }
+.rings { position: absolute; left: 50%; top: var(--av-y, 784px); width: 0; height: 0; }
+.rings svg { position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; fill: var(--cover-glyph); will-change: transform, opacity; }
+.avatar-wrap { position: absolute; left: 50%; top: 100px; width: 112px; height: 112px; margin-left: -56px; z-index: 2; will-change: transform, opacity, filter; transform-origin: 50% 50%; }
+.avatar { width: 112px; height: 112px; border-radius: 50%; display: grid; place-items: center; background: var(--initials-bg); color: var(--initials-fg);
+  font: 600 40px/1 'Geist', sans-serif; letter-spacing: -.02em; box-shadow: 0 0 0 3px var(--avatar-ring), var(--avatar-shadow); }
+
+.hero-spacer { display: block; width: 100%; height: var(--spacer, 300px); position: relative; }
+.hero-spacer:focus-visible { outline-offset: -4px; border-radius: 0; }
+.hero-name { position: sticky; top: 52px; z-index: 41; margin: 0; padding: 0 16px; pointer-events: none;
+  font-weight: 600; font-size: 30px; line-height: 36px; letter-spacing: -.022em; text-wrap: balance; hyphens: auto; overflow-wrap: break-word;
+  color: #fff; }
+.hero-name .nm { display: inline-block; max-width: 100%; transform-origin: 0 50%; will-change: transform; transition: color .2s ease-in-out, text-shadow .2s ease-in-out;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35), 0 0 18px rgba(0,0,0,.25); }
+:root.bar-on .hero-name .nm { color: var(--text); text-shadow: none; }
+:root.no-photo .hero-name { text-align: center; color: var(--cover-text); }
+:root.no-photo .hero-name .nm { transform-origin: 50% 50%; text-shadow: none; }
+:root.name-fade .hero-name { position: relative; top: 0 !important; }
+
+.hero-meta { padding: 4px 16px 0; will-change: opacity; }
+.sub { font-size: 15px; line-height: 20px; color: rgba(255,255,255,.84); text-shadow: 0 1px 2px rgba(0,0,0,.3); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub .dot { opacity: .6; padding: 0 5px; }
+.badges { display: flex; gap: 6px; margin-top: 8px; height: 22px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 9px; border-radius: 11px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .02em; color: #fff;
+  background: rgba(255,255,255,.22); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.28); }
+.badge svg { width: 12px; height: 12px; stroke-width: 2.2; }
+.badge.admin { background: var(--fill); color: #1C1C1C; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root.no-photo .hero-meta { text-align: center; }
+:root.no-photo .sub { color: var(--cover-muted); text-shadow: none; }
+:root.no-photo .badges { justify-content: center; }
+:root.no-photo .badge { background: var(--cover-badge); color: var(--cover-badge-fg); box-shadow: none; }
+:root.no-photo .badge.admin { background: var(--admin-on-cover-bg); color: var(--admin-on-cover-fg); }
+
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 20px 16px 20px; will-change: opacity, transform; transform-origin: 50% 0; }
+:root.no-photo .tiles { padding: 18px 16px 22px; }
+.tile { height: 58px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #fff;
+  background: rgba(255,255,255,.16); -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: inset 0 0 0 .5px rgba(255,255,255,.24), 0 6px 16px -10px rgba(0,0,0,.45); font-size: 12px; line-height: 16px; font-weight: 500; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .tile { background: rgba(0,0,0,.38); } }
+.tile svg { width: 22px; height: 22px; }
+.tile.pressed { background: rgba(255,255,255,.26); }
+:root.no-photo .tile { color: var(--cover-tile-fg); background: var(--cover-tile); box-shadow: inset 0 0 0 .5px var(--cover-tile-line); }
+:root.no-photo .tile.cta { background: var(--cover-cta-bg); color: var(--cover-cta-fg); box-shadow: 0 8px 20px -8px rgba(0,0,0,.45); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.tile:focus-visible { outline-color: #fff; border-radius: 18px; }
+:root.no-photo .tile:focus-visible { outline-color: var(--cover-tile-fg); }
+.only-photo { } :root.no-photo .only-photo { display: none; }
+.only-nophoto { display: none; } :root.no-photo .only-nophoto { display: flex; }
+
+/* ───────────── inset grouped list ───────────── */
+.sheet { position: relative; background: var(--bg); padding: 20px 16px 0; display: flex; flex-direction: column; gap: 24px; transition: background-color .25s; }
+.sheet::before { content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: var(--bg); }
+.group-title { margin: 0 0 8px 16px; font-size: 13px; line-height: 16px; font-weight: 600; color: var(--muted); letter-spacing: .01em; text-wrap: balance; }
+.group-foot { margin: 8px 16px 0; font-size: 13px; line-height: 18px; color: var(--tertiary); display: flex; gap: 6px; align-items: center; }
+.group-foot svg { width: 14px; height: 14px; }
+.card { background: var(--surface); border-radius: 24px; box-shadow: var(--card-shadow); overflow: hidden; transition: background-color .25s; }
+@supports (corner-shape: squircle) { .card { border-radius: 32px; corner-shape: superellipse(1.6); } }
+
+.row { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 12px 16px; text-align: left; }
+.row + .row::before, .row-sep::before { content: ''; position: absolute; top: 0; left: 16px; right: 16px; height: .5px; background: var(--hair); transform: scaleY(1); }
+.row.has-ico + .row::before, .row + .row.has-ico::before { left: 58px; }
+.row:focus-visible { outline-offset: -3px; border-radius: 22px; }
+.row.lv { flex-direction: column; align-items: stretch; gap: 3px; padding: 14px 16px 15px; }
+.lv-label { font-size: 13px; line-height: 16px; font-weight: 500; color: var(--muted); }
+.lv-value { font-size: 17px; line-height: 22px; color: var(--text); overflow-wrap: anywhere; }
+.lv-value.link { color: var(--ink); }
+.row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row-title { font-size: 17px; line-height: 22px; color: var(--text); }
+.row .chev { width: 18px; height: 18px; color: var(--tertiary); stroke-width: 2; }
+.row .ext { width: 16px; height: 16px; color: var(--tertiary); stroke-width: 2; }
+.ico-tile { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--tile-tint); color: var(--ink); flex: none; }
+.ico-tile svg { width: 18px; height: 18px; stroke-width: 1.9; }
+.ico-tile.solid { background: var(--fill); color: #1C1C1C; }
+.marker { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 13px; line-height: 16px; color: var(--tertiary); }
+.marker svg { width: 14px; height: 14px; stroke-width: 2; }
+.tag { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; margin-left: 8px; vertical-align: 2px; font-size: 12px; line-height: 16px; font-weight: 600; background: var(--tile-tint); color: var(--ink); letter-spacing: .01em; }
+.also { margin-top: 2px; font-size: 15px; line-height: 20px; color: var(--muted); }
+
+/* pressed states (wired via pointer events) */
+[data-press] { transition: transform .38s cubic-bezier(.22,1,.36,1), background-color .2s ease; }
+[data-press].pressed { transform: scale(.97); transition-duration: .1s, .1s; }
+.row[data-press].pressed { transform: scale(.985); background-color: var(--press); }
+:root.reduced [data-press].pressed { transform: none; }
+
+/* stats */
+.stats { display: grid; grid-template-columns: 1fr 1fr; position: relative; }
+.stats::after { content: ''; position: absolute; top: 18px; bottom: 18px; left: 50%; width: .5px; background: var(--hair); }
+.stat { min-height: 92px; padding: 16px 16px 16px 18px; text-align: left; display: flex; flex-direction: column; justify-content: center; gap: 4px; border-radius: 0; }
+.stat.pressed { background: var(--press); }
+.stat:focus-visible { outline-offset: -3px; border-radius: 22px; }
+.stat-n { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 28px; line-height: 32px; font-weight: 500; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--text); }
+.stat-l { font-size: 13px; line-height: 16px; color: var(--muted); display: flex; align-items: center; gap: 2px; }
+.stat-l svg { width: 14px; height: 14px; color: var(--tertiary); stroke-width: 2; }
+
+/* bio */
+.bio { padding: 15px 16px 16px; }
+.bio-text { font-size: 16px; line-height: 24px; color: var(--text); margin: 0; overflow: hidden; transition: height .38s cubic-bezier(.22,1,.36,1); text-wrap: pretty; }
+.bio.clamped .bio-text { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
+.bio-more-wrap { position: relative; display: flex; justify-content: flex-end; margin-top: -24px; height: 24px; }
+.bio.clamped .bio-more-wrap::before { content: ''; position: absolute; right: 0; top: 0; height: 24px; width: 120px; background: linear-gradient(90deg, transparent, var(--surface) 55%); }
+.bio:not(.clamped) .bio-more-wrap { margin-top: 4px; }
+.more { position: relative; color: var(--ink); font-weight: 500; font-size: 16px; line-height: 24px; min-height: 44px; min-width: 44px; margin: -10px -8px -10px 0; padding: 10px 8px; }
+
+/* chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px 16px; }
+.chip { height: 32px; padding: 0 12px; border-radius: 16px; display: inline-flex; align-items: center; font-size: 14px; line-height: 20px; font-weight: 500; background: var(--chip-bg); box-shadow: inset 0 0 0 1px var(--chip-line); color: var(--text); }
+.chip:nth-child(4n+1) { background: var(--tile-tint); box-shadow: none; color: var(--ink); }
+
+/* industries */
+.ind { position: relative; display: flex; gap: 12px; padding: 14px 16px; font-size: 15px; line-height: 20px; color: var(--text); overflow-wrap: anywhere; hyphens: auto; }
+.ind + .ind::before { content: ''; position: absolute; top: 0; left: 34px; right: 16px; height: .5px; background: var(--hair); }
+.ind i { flex: none; width: 6px; height: 6px; border-radius: 3px; background: var(--fill); margin-top: 7px; box-shadow: 0 0 0 3px var(--tile-tint); }
+
+/* social */
+.soc-val { font-size: 16px; line-height: 21px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.soc-lab { font-size: 13px; line-height: 16px; color: var(--muted); font-weight: 500; }
+
+/* segmented */
+.seg { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 44px; padding: 2px; border-radius: 12px; background: var(--seg-track); }
+.seg-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n, 3)); border-radius: 10px; background: var(--seg-thumb); box-shadow: var(--seg-shadow);
+  transform: translateX(calc(100% * var(--i, 0))); transition: transform .38s cubic-bezier(.22,1,.36,1), background-color .25s; }
+:root.reduced .seg-thumb { transition: background-color .25s; }
+.seg button { position: relative; z-index: 1; height: 40px; border-radius: 10px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--muted); transition: color .2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.seg button[aria-checked="true"] { color: var(--text); font-weight: 600; }
+.seg button svg { width: 16px; height: 16px; stroke-width: 2; }
+.seg button:focus-visible { outline-offset: -2px; border-radius: 10px; }
+.set-row { position: relative; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.set-row.inline { flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 16px; min-height: 60px; }
+.set-row.inline .seg { width: 132px; }
+.set-row + .row::before, .set-row + .set-row::before, .row + .set-row::before { content: ''; position: absolute; top: 0; left: 16px; right: 16px; height: .5px; background: var(--hair); }
+.set-head { display: flex; align-items: center; gap: 12px; }
+
+.footer { text-align: center; font-size: 12px; line-height: 16px; color: var(--tertiary); padding: 4px 0 0; }
+
+/* section entrance (once) */
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .42s ease, transform .42s cubic-bezier(.22,1,.36,1); }
+.reveal.in { opacity: 1; transform: none; }
+:root.reduced .reveal { transform: none; transition: opacity .15s linear; }
+.lower { content-visibility: auto; contain-intrinsic-size: auto 260px; }
+
+/* ───────────── tab bar ───────────── */
+.tabbar { bottom: 0; z-index: 50; height: calc(50px + 34px); padding-bottom: 34px; display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--tab-bg); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 -.5px 0 var(--tab-line); }
+.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 50px; color: var(--tertiary); font-size: 10px; line-height: 12px; font-weight: 500; letter-spacing: .01em; }
+.tab svg { width: 24px; height: 24px; }
+.tab[aria-current="page"] { color: var(--ink); font-weight: 600; }
+.tab-av { width: 26px; height: 26px; border-radius: 50%; padding: 1.5px; box-shadow: 0 0 0 2px var(--fill); background: var(--bg); }
+.tab-av img, .tab-av span { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; object-fit: cover; background: var(--initials-bg); color: var(--initials-fg); font-size: 9px; font-weight: 700; }
+.tab:focus-visible { outline-offset: -4px; }
+
+/* ───────────── photo viewer ───────────── */
+.viewer { position: fixed; inset: 0; z-index: 90; background: rgba(8,8,9,.96); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s; }
+.viewer.open { opacity: 1; visibility: visible; transition: opacity .25s ease; }
+.viewer img { max-width: min(100%, 430px); max-height: calc(100% - 92px - 34px - 96px); object-fit: contain; transform: scale(.96); transition: transform .38s cubic-bezier(.22,1,.36,1); }
+.viewer.open img { transform: none; }
+:root.reduced .viewer img { transform: none; }
+.viewer-actions { position: absolute; left: 0; right: 0; bottom: calc(34px + 16px); display: flex; gap: 10px; justify-content: center; padding: 0 16px; }
+.vbtn { height: 48px; padding: 0 20px; border-radius: 24px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; color: #fff; background: rgba(255,255,255,.14); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.2); }
+.vbtn.primary { background: #FF8912; color: #1C1C1C; box-shadow: 0 8px 20px -6px rgba(255,137,18,.45); }
+.vbtn svg { width: 18px; height: 18px; }
+.vbtn:focus-visible { outline-color: #fff; border-radius: 26px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(84px + 16px); z-index: 60; max-width: calc(100% - 32px); transform: translate(-50%, 8px); opacity: 0; pointer-events: none;
+  background: var(--toast-bg); color: var(--toast-fg); font-size: 14px; line-height: 20px; font-weight: 500; padding: 10px 16px; border-radius: 14px; box-shadow: 0 12px 32px -12px rgba(0,0,0,.45);
+  transition: opacity .2s ease, transform .38s cubic-bezier(.22,1,.36,1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+:root.reduced .toast { transform: translate(-50%, 0); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="g-mark" viewBox="0 0 24 24"><!-- placeholder for the UA WELL mark (decoration only) -->
+      <path d="M12 1.5c.7 6.2 4.3 9.8 10.5 10.5-6.2.7-9.8 4.3-10.5 10.5C11.3 16.3 7.7 12.7 1.5 12 7.7 11.3 11.3 7.7 12 1.5Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- Telegram-drawn chrome (simulation; not part of the design) -->
+<div class="col-fixed tg-chrome" aria-hidden="true">
+  <div class="tg-status">
+    <span>9:41</span>
+    <span class="tg-island"></span>
+    <span class="tg-glyphs">
+      <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.6c2.2 0 4.2.85 5.7 2.25l1.05-1.06A9.6 9.6 0 0 0 8 1.1 9.6 9.6 0 0 0 1.25 3.8L2.3 4.85A8.1 8.1 0 0 1 8 2.6Zm0 3c1.4 0 2.6.52 3.6 1.38l1.05-1.06A6.6 6.6 0 0 0 8 4.1a6.6 6.6 0 0 0-4.65 1.82L4.4 6.98A5.1 5.1 0 0 1 8 5.6Zm0 3c.6 0 1.1.2 1.5.53L8 10.7 6.5 9.13c.4-.33.9-.53 1.5-.53Z"/></svg>
+      <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2Z" opacity=".4"/></svg>
+    </span>
+  </div>
+  <div class="tg-pill l"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Закрити</div>
+  <div class="tg-pill r"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><svg viewBox="0 0 24 24" style="fill:#fff;stroke:none"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></div>
+</div>
+
+<!-- photo (fixed, behind the scrolling document) -->
+<div class="col-fixed bounce-fill" aria-hidden="true"></div>
+<div class="col-fixed photo-layer" aria-hidden="true">
+  <div class="photo-move" id="photoMove">
+    <div class="photo-scale" id="photoScale"><img id="heroImg" alt="" fetchpriority="high" decoding="async"></div>
+  </div>
+  <div class="photo-dim" id="photoDim"></div>
+</div>
+<div class="col-fixed top-scrim" aria-hidden="true"></div>
+
+<!-- frosted bar: decorative, the real <h1> stays in the page -->
+<div class="col-fixed bar" aria-hidden="true">
+  <div class="bar-glass"></div>
+  <div class="bar-title" id="barTitle">Олена Коваленко</div>
+</div>
+
+<main class="page" id="page">
+  <!-- no-photo cover (Telegram colour-profile) -->
+  <div class="cover" aria-hidden="true">
+    <div class="halo"></div>
+    <div class="rings" id="rings"></div>
+  </div>
+  <div class="avatar-wrap" id="avatarWrap" aria-hidden="true"><div class="avatar">ОК</div></div>
+  <!-- protection band, moves with the name -->
+  <div class="band" aria-hidden="true"><div class="band-blur"></div></div>
+
+  <button class="hero-spacer only-photo-btn" id="heroSpacer" aria-label="Відкрити фото профілю"></button>
+  <h1 class="hero-name" id="heroName"><span class="nm" id="nameText">Олена Коваленко</span></h1>
+  <div class="hero-meta" id="heroMeta">
+    <div class="sub">@olena_kov<span class="dot">·</span>учасник з бер. 2025</div>
+    <div class="badges">
+      <span class="badge">Бізнес</span>
+      <span class="badge admin" data-admin><svg class="i" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>Адмін</span>
+    </div>
+  </div>
+  <div class="tiles" id="tiles">
+    <button class="tile" data-press data-toast="Відкриється: Редагувати профіль" aria-label="Редагувати профіль">
+      <svg class="i" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>Редагувати</button>
+    <button class="tile only-photo" data-press data-open-viewer aria-label="Фото профілю">
+      <svg class="i" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Фото</button>
+    <button class="tile cta only-nophoto" data-press data-toast="Відкриється вибір фото">
+      <svg class="i" viewBox="0 0 24 24"><path d="M16 5h6"/><path d="M19 2v6"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/><circle cx="9" cy="9" r="2"/></svg>Додайте фото</button>
+    <button class="tile" data-press data-scroll-to="sec-settings" aria-label="Налаштування">
+      <svg class="i" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Налаштування</button>
+  </div>
+
+  <div class="sheet" id="sheet">
+    <!-- Stats -->
+    <section class="reveal" aria-label="Активність">
+      <div class="card">
+        <dl class="stats" style="margin:0">
+          <a href="#my-records?f=past" class="stat" data-press data-toast="Відкриється: Мої записи · минулі">
+            <dt class="sr-only">Відвідано подій</dt>
+            <dd class="stat-n" style="margin:0">14</dd>
+            <span class="stat-l" aria-hidden="true">відвідано подій<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span>
+          </a>
+          <a href="#my-records?f=upcoming" class="stat" data-press data-toast="Відкриється: Мої записи · заплановані">
+            <dt class="sr-only">Попереду</dt>
+            <dd class="stat-n" style="margin:0">3</dd>
+            <span class="stat-l" aria-hidden="true">попереду<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span>
+          </a>
+        </dl>
+      </div>
+    </section>
+
+    <!-- Admin (high, admins only) -->
+    <section class="reveal" data-admin aria-label="Адміністрування">
+      <div class="card">
+        <a href="#admin" class="row has-ico" data-press data-toast="Відкриється: Адмінпанель">
+          <span class="ico-tile solid"><svg class="i" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></span>
+          <span class="row-main"><span class="row-title">Адмінпанель</span></span>
+          <svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section class="reveal" aria-labelledby="h-about">
+      <h2 class="group-title" id="h-about">Про себе</h2>
+      <div class="card">
+        <div class="bio clamped" id="bio">
+          <p class="bio-text" id="bioText">Маркетологиня з 10-річним досвідом, переїхала до Франкфурта у 2022-му. Організовую нетворкінг-сніданки для українок у бізнесі й шукаю однодумців для спільних проєктів. Люблю гори, кераміку та добру каву.</p>
+          <div class="bio-more-wrap"><button class="more" id="bioMore" aria-expanded="false" aria-controls="bioText" data-press>ще</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contacts -->
+    <section class="reveal" aria-labelledby="h-contacts">
+      <h2 class="group-title" id="h-contacts">Контакти</h2>
+      <div class="card">
+        <a href="#" class="row lv" data-press data-toast="Відкриється профіль у Telegram">
+          <span class="lv-label">Telegram</span>
+          <span class="lv-value link">@olena_kov</span>
+        </a>
+        <div class="row lv">
+          <span class="lv-label">Телефон</span>
+          <span class="lv-value" style="font-variant-numeric: tabular-nums">+49 151 2345 6789</span>
+          <span class="marker"><svg class="i" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>приховано від учасників</span>
+        </div>
+        <div class="row lv">
+          <span class="lv-label">Місто</span>
+          <span class="lv-value">Франкфурт-на-Майні<span class="tag">основне</span></span>
+          <span class="also">Також: Майнц, Висбаден, Дармштадт</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interests -->
+    <section class="reveal lower" aria-labelledby="h-int">
+      <h2 class="group-title" id="h-int">Інтереси</h2>
+      <div class="card">
+        <ul class="chips" style="list-style:none;margin:0">
+          <li class="chip">Мистецтво</li><li class="chip">Подорожі</li><li class="chip">Психологія</li><li class="chip">Спорт</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Industries -->
+    <section class="reveal lower" aria-labelledby="h-ind">
+      <h2 class="group-title" id="h-ind">Галузі</h2>
+      <div class="card">
+        <ul style="list-style:none;margin:0;padding:0">
+          <li class="ind"><i aria-hidden="true"></i><span>Маркетинг, реклама, PR та комунікації</span></li>
+          <li class="ind"><i aria-hidden="true"></i><span>IT, розробка програмного забезпечення, SaaS та цифрові рішення</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Links -->
+    <section class="reveal lower" aria-labelledby="h-links">
+      <h2 class="group-title" id="h-links">Посилання</h2>
+      <div class="card">
+        <a href="#" class="row has-ico" data-press data-toast="Відкриється Instagram у браузері">
+          <span class="ico-tile"><svg class="i" viewBox="0 0 24 24"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg></span>
+          <span class="row-main"><span class="soc-lab">Instagram</span><span class="soc-val">@olena.kovalenko</span></span>
+          <svg class="i ext" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg><span class="sr-only">(відкривається зовні)</span>
+        </a>
+        <a href="#" class="row has-ico" data-press data-toast="Відкриється LinkedIn у браузері">
+          <span class="ico-tile"><svg class="i" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg></span>
+          <span class="row-main"><span class="soc-lab">LinkedIn</span><span class="soc-val">Olena Kovalenko</span></span>
+          <svg class="i ext" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg><span class="sr-only">(відкривається зовні)</span>
+        </a>
+        <a href="#" class="row has-ico" data-press data-toast="Відкриється канал у Telegram">
+          <span class="ico-tile"><svg class="i" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg></span>
+          <span class="row-main"><span class="soc-lab">Telegram-канал</span><span class="soc-val">Нотатки маркетологині</span></span>
+          <svg class="i ext" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg><span class="sr-only">(відкривається зовні)</span>
+        </a>
+      </div>
+      <p class="group-foot"><svg class="i" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Видно лише вам і менеджерам</p>
+    </section>
+
+    <!-- Settings -->
+    <section class="reveal lower" aria-labelledby="h-set" id="sec-settings">
+      <h2 class="group-title" id="h-set">Налаштування</h2>
+      <div class="card">
+        <div class="set-row">
+          <div class="set-head"><span class="ico-tile"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg></span><span class="row-title" id="lab-theme">Тема</span></div>
+          <div class="seg" role="radiogroup" aria-labelledby="lab-theme" id="segTheme" style="--n:3">
+            <span class="seg-thumb" aria-hidden="true"></span>
+            <button role="radio" data-v="system"><svg class="i" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></svg>Система</button>
+            <button role="radio" data-v="light"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>Світла</button>
+            <button role="radio" data-v="dark"><svg class="i" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>Темна</button>
+          </div>
+        </div>
+        <div class="set-row inline">
+          <div class="set-head"><span class="ico-tile"><svg class="i" viewBox="0 0 24 24"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg></span><span class="row-title" id="lab-lang">Мова</span></div>
+          <div class="seg" role="radiogroup" aria-labelledby="lab-lang" id="segLang" style="--n:2">
+            <span class="seg-thumb" aria-hidden="true"></span>
+            <button role="radio" data-v="uk" lang="uk">UK</button>
+            <button role="radio" data-v="en" lang="en">EN</button>
+          </div>
+        </div>
+        <a href="#edit" class="row has-ico" data-press data-toast="Відкриється: Редагувати профіль">
+          <span class="ico-tile"><svg class="i" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>
+          <span class="row-main"><span class="row-title">Редагувати профіль</span></span>
+          <svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+        <a href="#settings" class="row has-ico" data-press data-toast="Відкриється: Налаштування">
+          <span class="ico-tile"><svg class="i" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg></span>
+          <span class="row-main"><span class="row-title">Усі налаштування</span></span>
+          <svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <p class="footer">UA WELL · версія 0.8.13</p>
+  </div>
+</main>
+
+<nav class="col-fixed tabbar" aria-label="Основна навігація">
+  <a href="#events" class="tab" data-press data-toast="Відкриється: Події"><svg class="i" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>Події</a>
+  <a href="#mine" class="tab" data-press data-toast="Відкриється: Мої записи"><svg class="i" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>Мої записи</a>
+  <a href="#manager" class="tab" data-press data-toast="Відкриється: Менеджер"><svg class="i" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Менеджер</a>
+  <a href="#members" class="tab" data-press data-toast="Відкриється: Учасники"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Учасники</a>
+  <a href="#profile" class="tab" aria-current="page" data-press><span class="tab-av" id="tabAv"></span>Профіль</a>
+</nav>
+<div class="col-fixed home-ind" aria-hidden="true"></div>
+
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Фото профілю">
+  <img id="viewerImg" alt="Фото профілю Олени Коваленко">
+  <div class="viewer-actions">
+    <button class="vbtn primary" data-press data-toast="Відкриється вибір фото"><svg class="i" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Змінити фото</button>
+    <button class="vbtn" data-press id="viewerClose"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Готово</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.documentElement;
+  var $ = function (s) { return document.querySelector(s); };
+  var PHOTOS = {
+    '3x4': { src: 'assets/portrait-3x4.jpg', w: 1080, h: 1440 },
+    '2x3': { src: 'assets/alt-2x3.jpg', w: 1080, h: 1620 },
+    '1x1': { src: 'assets/portrait-1x1.jpg', w: 1080, h: 1080 }
+  };
+  // PROFILE_SCROLL — port target for a React constants object (pinned by tests in the real app).
+  var PS = {
+    pillY: 70,            // centre of Telegram's pill row (statusBar 47 + content band 45 / 2)
+    collapsedScale: 17 / 30,
+    maxCollapsedW: 150,
+    pillLeftEdge: 128,    // right edge of «Закрити» + 4 (ESTIMATE — Telegram exposes no pill rects; measure on device)
+    pillRightInset: 94,   // colW - left edge of «⌄ ⋯» + 4
+    pillGap: 10,          // min clear space between the collapsed title and either pill
+    morphWindow: 96,
+    parallax: 0.5,        // photo moves at half speed; scale is pinned to 1 on forward scroll
+    dimMax: 0.3, dimRange: 300,
+    barOffset: 112, barHyst: 8,
+    hapticAt: 32, hapticRearm: 16,
+    rubberC: 0.55,
+    springK: 555, springC: 47.1   // mass 1 → ζ = 1 (critically damped)
+  };
+
+  // ── state ──
+  var q = new URLSearchParams(location.search);
+  var state = {
+    theme: ['light', 'dark', 'system'].indexOf(q.get('theme')) >= 0 ? q.get('theme') : 'system',
+    photo: ['3x4', '2x3', '1x1', 'none'].indexOf(q.get('photo')) >= 0 ? q.get('photo') : '3x4',
+    admin: q.get('admin') !== '0',
+    motion: q.get('motion') === 'reduced' ? 'reduced' : (q.get('motion') === 'full' ? 'full' : null),
+    lang: 'uk'
+  };
+  var mqDark = matchMedia('(prefers-color-scheme: dark)');
+  var mqReduce = matchMedia('(prefers-reduced-motion: reduce)');
+  function resolvedTheme() { return state.theme === 'system' ? (mqDark.matches ? 'dark' : 'light') : state.theme; }
+  function isReduced() { return state.motion ? state.motion === 'reduced' : mqReduce.matches; }
+
+  // ── helpers ──
+  function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+  function ilerp(x, a, b) { return clamp01((x - a) / (b - a)); }
+  function rubberBand(offset, dim) { if (!(dim > 0) || offset <= 0) return 0; return (1 - 1 / ((offset * PS.rubberC) / dim + 1)) * dim; }
+  function unRubber(p, dim) { if (p <= 0) return 0; var c = PS.rubberC; return (dim * dim) / (c * (dim - p)) - dim / c; }
+  function haptic(kind) {
+    try { var hf = window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback; if (hf) hf.impactOccurred(kind || 'light'); } catch (e) {}
+  }
+
+  // ── elements ──
+  var page = $('#page'), photoMove = $('#photoMove'), photoScale = $('#photoScale'), photoDim = $('#photoDim'), img = $('#heroImg');
+  var spacer = $('#heroSpacer'), h1 = $('#heroName'), nameText = $('#nameText'), meta = $('#heroMeta'), tiles = $('#tiles');
+  var barTitle = $('#barTitle'), avatarWrap = $('#avatarWrap'), ringsEl = $('#rings');
+
+  // ── ring glyphs (5 rings × 6) ──
+  var glyphs = [];
+  (function buildRings() {
+    var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var mask = [1, .82, .62, .44, .28];
+    for (var i = 0; i < 5; i++) {
+      for (var j = 0; j < 6; j++) {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        el.setAttribute('viewBox', '0 0 24 24');
+        el.innerHTML = '<use href="#g-mark"/>';
+        ringsEl.appendChild(el);
+        var a = (j * 60 + (i % 2 ? 30 : 0) - 90) * Math.PI / 180, r0 = 78 + 28 * i;
+        var below = Math.sin(a) * r0;   // + = below the avatar centre, where the name/meta/badges sit
+        glyphs.push({ el: el, ring: i, r: r0, a: a, k: 0.7 + 0.3 * rnd(), o: mask[i] * (1 - ilerp(below, 20, 64)) });
+      }
+    }
+  })();
+
+  // ── geometry (measured on resize / state change only; never in the write loop) ──
+  var G = {};
+  function measure() {
+    var reduced = isReduced();
+    var colW = page.clientWidth;
+    var hasPhoto = state.photo !== 'none';
+    var nameH = nameText.offsetHeight, nameW = nameText.offsetWidth;
+    var twoLine = nameH > 44;
+    G.colW = colW; G.hasPhoto = hasPhoto; G.nameH = nameH; G.nameW = nameW;
+    // collapsed scale: Telegram's ~0.567 (17px), shrunk further only if the name would crowd the pills
+    var pillL = PS.pillLeftEdge - 4, pillR = colW - PS.pillRightInset + 4;   // pill edges
+    var slot = Math.min(PS.maxCollapsedW, pillR - pillL - 2 * PS.pillGap);
+    G.k = Math.min(PS.collapsedScale, slot / Math.max(1, nameW));
+    // centred on screen when that clears both pills by pillGap; otherwise centred in the gap between them
+    // (the «Закрити» pill is wider than «⌄ ⋯», so screen-centre would kiss it)
+    var cw = nameW * G.k, left = (colW - cw) / 2;
+    if (left < pillL + PS.pillGap || left + cw > pillR - PS.pillGap) left = (pillL + pillR - cw) / 2;
+    G.morphX = hasPhoto ? left - 16 : left - (colW - cw) / 2;
+    barTitle.style.left = ((pillL + pillR - slot) / 2) + 'px';
+    barTitle.style.width = slot + 'px'; barTitle.style.marginLeft = '0';
+    G.mode = (reduced || twoLine || G.k < 0.45) ? 'fade' : 'morph';   // 0.45 → ≥13.5px; 360px-wide phones still morph (k=.5)
+    // fade-mode bar title: shrink 16→13px before resorting to an ellipsis
+    barTitle.style.fontSize = Math.max(13, Math.min(16, Math.floor(30 * slot / Math.max(1, nameW)))) + 'px';
+    root.classList.toggle('name-fade', G.mode === 'fade');
+    var extra = Math.max(0, nameH - 36);
+    if (hasPhoto) {
+      var p = PHOTOS[state.photo];
+      var ratio = Math.max(0.8, Math.min(1, p.w / p.h));
+      G.H = Math.round(colW / ratio);
+      G.spacer = G.H - 188 - extra;
+      root.style.setProperty('--H', G.H + 'px');
+    } else {
+      G.spacer = 226;
+      G.H = 414 + extra;
+      root.style.setProperty('--H0', G.H + 'px');
+      root.style.setProperty('--av-y', (1000 - G.H + 156) + 'px');
+    }
+    root.style.setProperty('--spacer', G.spacer + 'px');
+    G.stickyTop = PS.pillY - nameH / 2;
+    h1.style.top = G.stickyTop + 'px';
+    G.nameTop = G.spacer;
+    G.pin = G.nameTop - G.stickyTop;
+    G.metaTop = meta.offsetTop;
+    G.tilesTop = tiles.offsetTop;
+    G.barAt = G.H - PS.barOffset;
+    // centred x for the morph: left inset 16 → (colW - w·k)/2
+    G.reduced = reduced;
+    last = {};
+    schedule();
+  }
+
+  // ── pull state ──
+  var pullPx = 0;          // gesture / harness pull (content translated by JS)
+  var hapticArmed = true;
+  var barOn = false;
+  var last = {};
+  function setStyle(el, key, prop, val) { if (last[key] !== val) { last[key] = val; el.style[prop] = val; } }
+
+  var raf = 0;
+  function schedule() { if (!raf) raf = requestAnimationFrame(frame); }
+
+  function frame() {
+    raf = 0;
+    var sNat = window.scrollY;
+    var s = Math.max(0, sNat);
+    var reduced = G.reduced;
+    var nativePull = sNat < 0 ? -sNat : 0;
+    var pull = reduced ? 0 : Math.max(pullPx, nativePull);
+
+    // haptic tick at 32px of pull
+    if (pull >= PS.hapticAt && hapticArmed) { hapticArmed = false; haptic('light'); }
+    else if (pull < PS.hapticRearm) hapticArmed = true;
+
+    // content follows a JS pull (gesture/harness); a native bounce already moves it
+    var contentY = (!reduced && pullPx > 0 && nativePull === 0) ? pullPx : 0;
+    setStyle(page, 'pageT', 'transform', contentY ? 'translate3d(0,' + contentY.toFixed(2) + 'px,0)' : '');
+    page.classList.toggle('pulling', contentY > 0);
+
+    if (G.hasPhoto) {
+      var ty = reduced ? -sNat : -PS.parallax * Math.min(s, G.H * 2);
+      setStyle(photoMove, 'pm', 'transform', 'translate3d(0,' + ty.toFixed(2) + 'px,0)');
+      var sc = pull > 0 ? (G.H + pull) / G.H : 1;           // stretch only on pull; 1 on forward scroll
+      setStyle(photoScale, 'ps', 'transform', sc !== 1 ? 'scale(' + sc.toFixed(4) + ')' : '');
+      setStyle(photoDim, 'pd', 'opacity', (PS.dimMax * ilerp(s, 0, PS.dimRange)).toFixed(3));
+    } else {
+      // Telegram rest-state collapse
+      var f = clamp01(s / G.pin);
+      if (reduced) {
+        setStyle(avatarWrap, 'av', 'transform', '');
+        setStyle(avatarWrap, 'avf', 'filter', '');
+        setStyle(avatarWrap, 'avo', 'opacity', (1 - ilerp(f, .3, .8)).toFixed(3));
+      } else {
+        setStyle(avatarWrap, 'av', 'transform', 'translate3d(0,' + (17 * f).toFixed(2) + 'px,0) scale(' + (1 - .45 * f).toFixed(4) + ')');
+        var bl = 8 * ilerp(f, .2, .7);
+        setStyle(avatarWrap, 'avf', 'filter', bl > 0.05 ? 'blur(' + bl.toFixed(2) + 'px)' : '');
+        setStyle(avatarWrap, 'avo', 'opacity', (1 - ilerp(f, .5, 1)).toFixed(3));
+      }
+      var fk = f.toFixed(4);
+      if (last.rings !== fk + reduced) {
+        last.rings = fk + reduced;
+        for (var i = 0; i < glyphs.length; i++) {
+          var gl = glyphs[i];
+          var st = (4 - gl.ring) * 0.1;
+          var g = reduced ? 0 : ilerp(f, st, st + 0.225);
+          var r = gl.r + (20 - gl.r) * g;
+          var op = reduced ? gl.o * (1 - ilerp(f, 0, .6)) : gl.o * (1 - g);
+          gl.el.style.transform = 'translate3d(' + (Math.cos(gl.a) * r).toFixed(2) + 'px,' + (Math.sin(gl.a) * r).toFixed(2) + 'px,0) scale(' + gl.k.toFixed(3) + ')';
+          gl.el.style.opacity = op.toFixed(3);
+        }
+      }
+    }
+
+    // subtitle + badges
+    setStyle(meta, 'meta', 'opacity', (1 - ilerp(s, G.metaTop - 220, G.metaTop - 140)).toFixed(3));
+    // tiles collapse as they near the pill band
+    var tp = ilerp(s, G.tilesTop - 160, G.tilesTop - 100);
+    setStyle(tiles, 'tilesO', 'opacity', (1 - tp).toFixed(3));
+    setStyle(tiles, 'tilesT', 'transform', reduced || tp === 0 ? '' : 'scale(' + (1 - .06 * tp).toFixed(4) + ')');
+    tiles.style.pointerEvents = tp > .6 ? 'none' : '';
+
+    // name
+    if (G.mode === 'morph') {
+      var m = ilerp(s, G.pin - PS.morphWindow, G.pin);
+      m = m * m * (3 - 2 * m);   // smoothstep: y is sticky/linear, scale + x ease in and out of the window
+      var k = 1 - (1 - G.k) * m;
+      var x = G.morphX * m;
+      setStyle(nameText, 'nm', 'transform', m === 0 ? '' : 'translate3d(' + x.toFixed(2) + 'px,0,0) scale(' + k.toFixed(4) + ')');
+      setStyle(nameText, 'nmo', 'opacity', '');
+      setStyle(barTitle, 'bt', 'opacity', '0');
+    } else {
+      setStyle(nameText, 'nm', 'transform', '');
+      setStyle(nameText, 'nmo', 'opacity', (1 - ilerp(s, G.pin - 60, G.pin)).toFixed(3));
+      setStyle(barTitle, 'bt', 'opacity', ilerp(s, G.pin, G.pin + 50).toFixed(3));
+    }
+
+    // frosted bar: triggered (200ms CSS fade) with hysteresis — Telegram switches, it doesn't scrub
+    var want = barOn ? s >= G.barAt - PS.barHyst : s >= G.barAt;
+    if (want !== barOn) { barOn = want; root.classList.toggle('bar-on', barOn); updateChrome(); }
+  }
+
+  // Telegram picks status-bar glyph colour from setHeaderColor; simulate it.
+  function updateChrome() {
+    var dark = resolvedTheme() === 'dark';
+    var ink = !dark && (barOn || !G.hasPhoto);
+    root.classList.toggle('chrome-ink', ink);
+    // real app: miniApp.setHeaderColor(G.hasPhoto && !barOn ? '#0F0F10' : 'bg_color'), restored on unmount
+  }
+
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', measure);
+
+  // ── pull: harness hook + touch gesture (Android / iOS with overscroll-behavior:none) ──
+  var settle = 0;
+  function renderPull(px) { pullPx = Math.max(0, px); schedule(); }
+  window.__pv = { setPull: function (px) { cancelAnimationFrame(settle); settle = 0; renderPull(+px || 0); frame(); } };
+
+  var startY = null;
+  window.addEventListener('touchstart', function (e) {
+    if (G.reduced || e.touches.length !== 1) { startY = null; return; }
+    cancelAnimationFrame(settle); settle = 0;
+    startY = window.scrollY <= 0 ? e.touches[0].clientY - unRubber(pullPx, window.innerHeight) : null;
+  }, { passive: true });
+  window.addEventListener('touchmove', function (e) {
+    if (G.reduced) return;
+    var y = e.touches[0] && e.touches[0].clientY; if (y == null) return;
+    if (window.scrollY < 0) { pullPx = 0; schedule(); return; }      // native bounce present → frame() mirrors it
+    if (startY === null) { if (window.scrollY <= 0) startY = y; return; }
+    var dy = y - startY;
+    renderPull(dy > 0 && window.scrollY <= 0 ? rubberBand(dy, window.innerHeight) : 0);
+  }, { passive: true });
+  function release() {
+    startY = null;
+    if (pullPx <= 0) return;
+    // critically damped spring (k=555, c=47.1, m=1): x(t) = (x0 + (v0 + ωx0)t)·e^(−ωt)
+    var w = Math.sqrt(PS.springK), x0 = pullPx, t0 = performance.now();
+    (function step(now) {
+      var t = (now - t0) / 1000, x = (x0 + w * x0 * t) * Math.exp(-w * t);
+      if (x < 0.3) { renderPull(0); settle = 0; return; }
+      renderPull(x); settle = requestAnimationFrame(step);
+    })(t0);
+  }
+  window.addEventListener('touchend', release, { passive: true });
+  window.addEventListener('touchcancel', release, { passive: true });
+
+  // ── pressed states ──
+  var pressed = null;
+  function unpress() { if (pressed) { pressed.classList.remove('pressed'); pressed = null; } }
+  document.addEventListener('pointerdown', function (e) {
+    var t = e.target.closest && e.target.closest('[data-press]');
+    if (!t) return; unpress(); pressed = t; t.classList.add('pressed');
+  }, { passive: true });
+  ['pointerup', 'pointercancel', 'pointerleave', 'dragstart'].forEach(function (ev) { document.addEventListener(ev, unpress, { passive: true }); });
+  window.addEventListener('scroll', unpress, { passive: true });
+
+  // ── toast ──
+  var toastEl = $('#toast'), toastT = 0;
+  function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function () { toastEl.classList.remove('show'); }, 1600); }
+
+  // ── clicks ──
+  var viewer = $('#viewer'), viewerImg = $('#viewerImg'), lastFocus = null;
+  function openViewer() {
+    if (!G.hasPhoto) return;
+    lastFocus = document.activeElement; viewerImg.src = PHOTOS[state.photo].src;
+    viewer.classList.add('open'); haptic('light');
+    setTimeout(function () { $('#viewerClose').focus({ preventScroll: true }); }, 30);
+  }
+  function closeViewer() { viewer.classList.remove('open'); if (lastFocus) lastFocus.focus({ preventScroll: true }); }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('a, button');
+    if (!t) return;
+    if (t.id === 'heroSpacer' || t.hasAttribute('data-open-viewer')) { e.preventDefault(); openViewer(); return; }
+    if (t.id === 'viewerClose') { closeViewer(); return; }
+    if (t.hasAttribute('data-scroll-to')) {
+      e.preventDefault(); haptic('light');
+      var target = document.getElementById(t.getAttribute('data-scroll-to'));
+      var y = target.getBoundingClientRect().top + window.scrollY - 104;
+      window.scrollTo({ top: y, behavior: G.reduced ? 'auto' : 'smooth' });
+      return;
+    }
+    if (t.hasAttribute('data-toast')) { e.preventDefault(); haptic('light'); toast(t.getAttribute('data-toast')); }
+    else if (t.tagName === 'A' && t.getAttribute('href').charAt(0) === '#') e.preventDefault();
+  });
+  viewer.addEventListener('click', function (e) { if (e.target === viewer) closeViewer(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && viewer.classList.contains('open')) closeViewer(); });
+
+  // ── bio expand («ще») ──
+  var bio = $('#bio'), bioText = $('#bioText'), bioMore = $('#bioMore');
+  function bioOverflows() { return bioText.scrollHeight > bioText.clientHeight + 2; }
+  bioMore.addEventListener('click', function () {
+    var expanded = !bio.classList.contains('clamped');
+    var from = bioText.offsetHeight;
+    bio.classList.toggle('clamped', expanded);
+    bioMore.textContent = expanded ? 'ще' : 'згорнути';
+    bioMore.setAttribute('aria-expanded', String(!expanded));
+    if (G.reduced) return;
+    var to = bioText.offsetHeight;
+    bioText.style.height = from + 'px';
+    void bioText.offsetHeight;
+    bioText.style.height = to + 'px';
+    setTimeout(function () { bioText.style.height = ''; measure(); }, 400);
+  });
+
+  // ── segmented controls (radiogroup, arrow keys) ──
+  function initSeg(el, get, set) {
+    var btns = Array.prototype.slice.call(el.querySelectorAll('button'));
+    function sync() {
+      var v = get(), idx = 0;
+      btns.forEach(function (b, i) { var on = b.getAttribute('data-v') === v; if (on) idx = i; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; });
+      el.style.setProperty('--i', idx);
+    }
+    btns.forEach(function (b, i) {
+      b.addEventListener('click', function () { if (get() !== b.getAttribute('data-v')) { haptic('light'); set(b.getAttribute('data-v')); } });
+      b.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (!d) return; e.preventDefault();
+        var n = btns[(i + d + btns.length) % btns.length]; set(n.getAttribute('data-v')); n.focus();
+      });
+    });
+    return sync;
+  }
+  var syncTheme = initSeg($('#segTheme'), function () { return state.theme; }, function (v) { state.theme = v; apply(); });
+  var syncLang = initSeg($('#segLang'), function () { return state.lang; }, function (v) { state.lang = v; syncLang(); toast(v === 'en' ? 'Language: English (demo)' : 'Мова: українська'); });
+
+  // ── entrances (once) ──
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
+    es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold: 0.15 }) : null;
+  Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function (el) { io ? io.observe(el) : el.classList.add('in'); });
+
+  // Reveal against this page's OWN viewport. IntersectionObserver alone measures the top-level
+  // viewport, so inside an iframe below the host page's fold sections never revealed.
+  (function () {
+    var pending = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+    function check() {
+      var lim = window.innerHeight * 0.94;
+      pending = pending.filter(function (el) {
+        if (el.classList.contains('in')) return false;
+        if (el.getBoundingClientRect().top < lim) { el.classList.add('in'); return false; }
+        return true;
+      });
+    }
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    window.addEventListener('load', check);
+  })();
+
+  // ── apply state ──
+  function apply() {
+    root.setAttribute('data-theme', resolvedTheme());
+    root.classList.toggle('reduced', isReduced());
+    var hasPhoto = state.photo !== 'none';
+    root.classList.toggle('has-photo', hasPhoto);
+    root.classList.toggle('no-photo', !hasPhoto);
+    spacer.tabIndex = hasPhoto ? 0 : -1;
+    spacer.setAttribute('aria-hidden', hasPhoto ? 'false' : 'true');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-admin]'), function (el) { el.hidden = !state.admin; });
+    var tabAv = $('#tabAv');
+    if (hasPhoto) {
+      var src = PHOTOS[state.photo].src;
+      if (img.getAttribute('src') !== src) {
+        img.classList.remove('loaded');
+        img.src = src;
+        var done = function () { img.classList.add('loaded'); };
+        if (img.decode) img.decode().then(done, done); else img.onload = done;
+      }
+      tabAv.innerHTML = '<img alt="" src="' + src + '" loading="lazy" decoding="async">';
+    } else {
+      tabAv.innerHTML = '<span>ОК</span>';
+    }
+    syncTheme(); syncLang();
+    measure();
+    updateChrome();
+  }
+  mqDark.addEventListener && mqDark.addEventListener('change', function () { if (state.theme === 'system') apply(); });
+  mqReduce.addEventListener && mqReduce.addEventListener('change', function () { if (!state.motion) apply(); });
+
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || d.type !== 'pv-state') return;
+    if (d.theme && ['light', 'dark', 'system'].indexOf(d.theme) >= 0) state.theme = d.theme;
+    if (d.photo && (PHOTOS[d.photo] || d.photo === 'none')) state.photo = d.photo;
+    if (d.admin !== undefined) state.admin = d.admin === true || d.admin === 1 || d.admin === '1';
+    if (d.motion) state.motion = d.motion === 'reduced' ? 'reduced' : d.motion === 'full' ? 'full' : null;
+    apply();
+  });
+
+  apply();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+  window.addEventListener('load', measure);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>UA WELL Profile Variants</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=Geist+Mono:wght@400..600&display=swap">
+<style>
+  /* Layout: a quiet review bench — controls on top, three live phones in a row
+     on wide screens, one phone at a time behind tabs on narrow ones. */
+  :root {
+    --bg: #f3f1ed;
+    --panel: #ffffff;
+    --fg: #1c1c1c;
+    --muted: #57534e;
+    --line: #e4e0d9;
+    --ink: #b45309;
+    --fill: #ff8912;
+    --bezel: #1c1c1c;
+    --shadow: 0 1px 2px rgb(28 25 23 / 0.06), 0 8px 24px -6px rgb(28 25 23 / 0.12), 0 32px 64px -24px rgb(28 25 23 / 0.22);
+    --font: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121213; --panel: #1f1f21; --fg: #f5f5f4; --muted: #b8b3ad; --line: #2e2e31;
+      --ink: #ff8912; --bezel: #000000;
+      --shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 64px -20px rgb(0 0 0 / 0.7);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121213; --panel: #1f1f21; --fg: #f5f5f4; --muted: #b8b3ad; --line: #2e2e31;
+    --ink: #ff8912; --bezel: #000000;
+    --shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 64px -20px rgb(0 0 0 / 0.7);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 28px 56px;
+  }
+  .wrap { max-width: 1340px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  header.top { display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
+  .eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+  h1 { margin: 0; font-size: clamp(26px, 4vw, 36px); font-weight: 750; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { margin: 0; color: var(--muted); }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px;
+  }
+  .ctl { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .ctl > span { font: 600 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .seg { display: inline-flex; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 2px; }
+  .seg button {
+    font: inherit; font-size: 13px; font-weight: 550; color: var(--muted); background: none; border: 0;
+    min-height: 36px; padding: 0 12px; border-radius: 8px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--panel); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--line); }
+  .seg button:focus-visible, .tabs button:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
+
+  .tabs { display: none; gap: 6px; }
+  .tabs button {
+    flex: 1; font: inherit; font-weight: 650; font-size: 14px; min-height: 44px; border-radius: 12px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+  }
+  .tabs button[aria-selected="true"] { color: var(--fg); border-color: var(--fill); box-shadow: inset 0 0 0 1px var(--fill); }
+
+  .bench { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; align-items: start; }
+  .variant { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .phone {
+    width: 100%; max-width: 410px; margin: 0 auto; aspect-ratio: 410 / 864;
+    background: var(--bezel); border-radius: 54px; padding: 10px; box-shadow: var(--shadow);
+  }
+  .phone iframe { width: 100%; height: 100%; border: 0; border-radius: 44px; background: #000; display: block; }
+  .meta { display: flex; flex-direction: column; gap: 8px; max-width: 410px; margin: 0 auto; width: 100%; min-width: 0; }
+  .meta h2 { margin: 0; font-size: 20px; font-weight: 720; letter-spacing: -0.01em; display: flex; gap: 10px; align-items: baseline; }
+  .meta h2 .k { font: 600 13px/1 var(--mono); color: var(--ink); }
+  .meta p { margin: 0; color: var(--muted); font-size: 14px; }
+  .meta ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
+  .meta .label { font: 600 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg); margin-top: 6px; }
+  .open { font-size: 13px; color: var(--ink); font-weight: 600; text-decoration: none; }
+  .open:hover { text-decoration: underline; }
+  .hint { font-size: 13px; color: var(--muted); }
+
+  @media (max-width: 1180px) {
+    .tabs { display: flex; }
+    .bench { grid-template-columns: minmax(0, 1fr); }
+    .variant[hidden] { display: none !important; }
+  }
+  @media (max-width: 460px) {
+    .phone { border-radius: 0; padding: 0; background: none; box-shadow: none; aspect-ratio: auto; height: 82vh; }
+    .phone iframe { border-radius: 20px; box-shadow: var(--shadow); }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">/profile · redesign · 3 directions</div>
+    <h1>Pick a direction for «Мій профіль»</h1>
+    <p class="lede">Each phone is a live, scrollable prototype. Scroll inside it to see the hero animation. Drag down at the top to see the pull-down stretch. The controls change all three phones at once. Sample person and photo are stock material, not a real member.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Prototype state">
+    <div class="ctl"><span>Тема</span><div class="seg" data-key="theme">
+      <button type="button" data-v="system" aria-pressed="true">Система</button>
+      <button type="button" data-v="light" aria-pressed="false">Світла</button>
+      <button type="button" data-v="dark" aria-pressed="false">Темна</button></div></div>
+    <div class="ctl"><span>Фото</span><div class="seg" data-key="photo">
+      <button type="button" data-v="3x4" aria-pressed="true">3:4</button>
+      <button type="button" data-v="2x3" aria-pressed="false">2:3</button>
+      <button type="button" data-v="1x1" aria-pressed="false">1:1</button>
+      <button type="button" data-v="none" aria-pressed="false">Без фото</button></div></div>
+    <div class="ctl"><span>Роль</span><div class="seg" data-key="admin">
+      <button type="button" data-v="1" aria-pressed="true">Адмін</button>
+      <button type="button" data-v="0" aria-pressed="false">Учасник</button></div></div>
+    <div class="ctl"><span>Рух</span><div class="seg" data-key="motion">
+      <button type="button" data-v="full" aria-pressed="true">Повний</button>
+      <button type="button" data-v="reduced" aria-pressed="false">Зменшений</button></div></div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Variants">
+    <button type="button" role="tab" aria-selected="true" data-tab="a">A · Telegram</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="b">B · Poster</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="c">C · Editorial</button>
+  </div>
+
+  <div class="bench">
+    <section class="variant" data-variant="a">
+      <div class="phone"><iframe title="Variant A prototype" data-src="variant-a.html"></iframe></div>
+      <div class="meta">
+        <h2><span class="k">A</span>Telegram-native</h2>
+        <p>Telegram's own profile header, in the UA WELL brand. A full-width 4:5 photo with the name bottom-left on a soft blurred band, and three frosted action tiles on the photo. Below it, Telegram-style grouped cards with the label above each value.</p>
+        <div class="label">Motion</div>
+        <ul>
+          <li>The photo moves up at half the scroll speed and never zooms.</li>
+          <li>The name shrinks to 57% and slides into the gap between Telegram's pills.</li>
+          <li>A frosted bar fades in once the photo has gone.</li>
+          <li>Pull down at the top and the photo stretches from its top edge, with no seam.</li>
+          <li>No photo: an orange colour cover with rings of brand marks that pull in and fade as you scroll.</li>
+        </ul>
+        <div class="label">Watch out for</div>
+        <ul>
+          <li>The safest of the three. It feels native, but it borrows Telegram's identity more than it builds UA WELL's.</li>
+          <li>The heaviest use of blur (bar, tiles, band), so cheap Android phones need a solid fallback.</li>
+        </ul>
+        <a class="open" href="variant-a.html" target="_blank" rel="noopener">Open full screen ↗</a>
+      </div>
+    </section>
+    <section class="variant" data-variant="b">
+      <div class="phone"><iframe title="Variant B prototype" data-src="variant-b.html"></iframe></div>
+      <div class="meta">
+        <h2><span class="k">B</span>Contact Poster</h2>
+        <p>An iOS Contact Poster. A full-screen portrait, the name huge in white over two lines, round glass buttons (Редагувати · Фото · Тема · Налаштування), and a light rounded sheet that rises over the photo.</p>
+        <div class="label">Motion</div>
+        <ul>
+          <li>As the sheet rises, the photo blurs and darkens progressively instead of sliding away.</li>
+          <li>The name and buttons fade out one by one.</li>
+          <li>A compact bar with a mini avatar and the name appears between the pills.</li>
+          <li>Pull down and the whole poster stretches, staying attached to the sheet.</li>
+        </ul>
+        <div class="label">Watch out for</div>
+        <ul>
+          <li>The most emotional and premium of the three, but it depends most on the photo. With square photos the name lands on the chin, and bright photos need a stronger dim.</li>
+          <li>The prototype fakes each photo's brightness. The app doesn't store it today, so this needs either a new field at upload or measuring the colour in the browser.</li>
+          <li>The heaviest on GPU memory, because it keeps pre-blurred copies of the photo.</li>
+        </ul>
+        <a class="open" href="variant-b.html" target="_blank" rel="noopener">Open full screen ↗</a>
+      </div>
+    </section>
+    <section class="variant" data-variant="c">
+      <div class="phone"><iframe title="Variant C prototype" data-src="variant-c.html"></iframe></div>
+      <div class="meta">
+        <h2><span class="k">C</span>Editorial</h2>
+        <p>A calm magazine page. The photo is an inset portrait card with rounded corners and a warm shadow. Below it: a small «учасник з …» line, a big name, a dark «Редагувати профіль» button, and numbered sections with hairline openers. The bio has a hanging quote mark.</p>
+        <div class="label">Motion</div>
+        <ul>
+          <li>The identity sheet slides up over the photo card while the card dims.</li>
+          <li>Then a compact avatar and first name hand off into the top bar.</li>
+          <li>Pull down and the card grows into a full-bleed photo.</li>
+          <li>Sections fade up once as they enter the screen.</li>
+        </ul>
+        <div class="label">Watch out for</div>
+        <ul>
+          <li>The least immersive of the three: the photo is framed, not edge to edge, until you pull down.</li>
+          <li>The fixed 4:5 frame crops landscape photos the hardest.</li>
+          <li>On a long profile, the many hairlines and cards can start to feel busy.</li>
+        </ul>
+        <a class="open" href="variant-c.html" target="_blank" rel="noopener">Open full screen ↗</a>
+      </div>
+    </section>
+  </div>
+  <p class="hint">Tip: «Без фото» shows the hero for members who haven't uploaded a photo yet. «Зменшений» previews the reduced-motion version.</p>
+</div>
+
+<script>
+  (function () {
+    var state = { theme: 'system', photo: '3x4', admin: '1', motion: 'full' };
+    try {
+      var saved = JSON.parse(localStorage.getItem('pv-state') || 'null');
+      if (saved && typeof saved === 'object') Object.assign(state, saved);
+    } catch (e) {}
+    var frames = Array.prototype.slice.call(document.querySelectorAll('iframe[data-src]'));
+
+    function effectiveTheme() {
+      if (state.theme !== 'system') return state.theme;
+      var attr = document.documentElement.getAttribute('data-theme');
+      if (attr === 'light' || attr === 'dark') return attr;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function msg() {
+      return { type: 'pv-state', theme: effectiveTheme(), photo: state.photo, admin: state.admin, motion: state.motion };
+    }
+    function push() {
+      frames.forEach(function (f) { try { f.contentWindow && f.contentWindow.postMessage(msg(), '*'); } catch (e) {} });
+    }
+    function query() {
+      var m = msg();
+      return '?theme=' + m.theme + '&photo=' + m.photo + '&admin=' + m.admin + '&motion=' + m.motion;
+    }
+    frames.forEach(function (f) {
+      f.addEventListener('load', push);
+      f.src = f.getAttribute('data-src') + query();
+    });
+
+    document.querySelectorAll('.seg').forEach(function (seg) {
+      var key = seg.getAttribute('data-key');
+      var buttons = seg.querySelectorAll('button');
+      function sync() {
+        buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-v') === state[key])); });
+      }
+      sync();
+      buttons.forEach(function (b) {
+        b.addEventListener('click', function () {
+          state[key] = b.getAttribute('data-v');
+          sync();
+          try { localStorage.setItem('pv-state', JSON.stringify(state)); } catch (e) {}
+          push();
+        });
+      });
+    });
+
+    // Follow the viewer's theme changes while on "system".
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', push);
+    new MutationObserver(push).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    var tabs = document.querySelectorAll('.tabs button');
+    var variants = document.querySelectorAll('.variant');
+    function select(key) {
+      tabs.forEach(function (t) { t.setAttribute('aria-selected', String(t.getAttribute('data-tab') === key)); });
+      variants.forEach(function (v) { v.hidden = window.matchMedia('(max-width: 1180px)').matches && v.getAttribute('data-variant') !== key; });
+    }
+    tabs.forEach(function (t) { t.addEventListener('click', function () { select(t.getAttribute('data-tab')); }); });
+    var current = 'a';
+    tabs.forEach(function (t) { t.addEventListener('click', function () { current = t.getAttribute('data-tab'); }); });
+    window.matchMedia('(max-width: 1180px)').addEventListener('change', function () { select(current); });
+    var hash = (location.hash || '').slice(1);
+    select(/^[abc]$/.test(hash) ? hash : 'a');
+  })();
+</script>
+
+</body></html>
