@@ -98,12 +98,15 @@
 
 <div class="wrap">
   <header class="top">
-    <div class="eyebrow">/profile · redesign · 3 directions</div>
-    <h1>Pick a direction for «Мій профіль»</h1>
-    <p class="lede">Each phone is a live, scrollable prototype. Scroll inside it to see the hero animation. Drag down at the top to see the pull-down stretch. The controls change all three phones at once. Sample person and photo are stock material, not a real member.</p>
+    <div class="eyebrow">/profile · /u/:id · redesign · 3 directions</div>
+    <h1>Pick a direction for the profile pages</h1>
+    <p class="lede">Each phone is a live, scrollable prototype. Scroll inside it to see the hero animation. Drag down at the top to see the pull-down stretch. The controls change all three phones at once. «Профіль» switches between your own profile and another member's. «Хто дивиться» switches the viewer between an admin and a regular member. On someone else's profile, an admin also gets «Як адміністратор / Як учасник» inside the page. Sample people and photos are stock material, not real members.</p>
   </header>
 
   <div class="controls" role="group" aria-label="Prototype state">
+    <div class="ctl"><span>Профіль</span><div class="seg" data-key="view">
+      <button type="button" data-v="own" aria-pressed="true">Мій</button>
+      <button type="button" data-v="other" aria-pressed="false">Інший учасник</button></div></div>
     <div class="ctl"><span>Тема</span><div class="seg" data-key="theme">
       <button type="button" data-v="system" aria-pressed="true">Система</button>
       <button type="button" data-v="light" aria-pressed="false">Світла</button>
@@ -113,7 +116,7 @@
       <button type="button" data-v="2x3" aria-pressed="false">2:3</button>
       <button type="button" data-v="1x1" aria-pressed="false">1:1</button>
       <button type="button" data-v="none" aria-pressed="false">Без фото</button></div></div>
-    <div class="ctl"><span>Роль</span><div class="seg" data-key="admin">
+    <div class="ctl"><span>Хто дивиться</span><div class="seg" data-key="admin">
       <button type="button" data-v="1" aria-pressed="true">Адмін</button>
       <button type="button" data-v="0" aria-pressed="false">Учасник</button></div></div>
     <div class="ctl"><span>Рух</span><div class="seg" data-key="motion">
@@ -192,12 +195,12 @@
       </div>
     </section>
   </div>
-  <p class="hint">Tip: «Без фото» shows the hero for members who haven't uploaded a photo yet. «Зменшений» previews the reduced-motion version.</p>
+  <p class="hint">Tip: «Без фото» shows the hero for members who haven't uploaded a photo yet. «Зменшений» previews the reduced-motion version. «Інший учасник» + «Адмін» shows the manager's view of a member, with attendance KPIs and the private note.</p>
 </div>
 
 <script>
   (function () {
-    var state = { theme: 'system', photo: '3x4', admin: '1', motion: 'full' };
+    var state = { view: 'own', theme: 'system', photo: '3x4', admin: '1', motion: 'full' };
     try {
       var saved = JSON.parse(localStorage.getItem('pv-state') || 'null');
       if (saved && typeof saved === 'object') Object.assign(state, saved);
@@ -211,19 +214,22 @@
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     function msg() {
-      return { type: 'pv-state', theme: effectiveTheme(), photo: state.photo, admin: state.admin, motion: state.motion };
+      return { type: 'pv-state', view: state.view, theme: effectiveTheme(), photo: state.photo, admin: state.admin, motion: state.motion };
     }
     function push() {
       frames.forEach(function (f) { try { f.contentWindow && f.contentWindow.postMessage(msg(), '*'); } catch (e) {} });
+      // «Open full screen» opens the same state the phones show.
+      document.querySelectorAll('a.open').forEach(function (a) { a.href = a.getAttribute('href').split('?')[0] + query(); });
     }
     function query() {
       var m = msg();
-      return '?theme=' + m.theme + '&photo=' + m.photo + '&admin=' + m.admin + '&motion=' + m.motion;
+      return '?view=' + m.view + '&theme=' + m.theme + '&photo=' + m.photo + '&admin=' + m.admin + '&motion=' + m.motion;
     }
     frames.forEach(function (f) {
       f.addEventListener('load', push);
       f.src = f.getAttribute('data-src') + query();
     });
+    push();
 
     document.querySelectorAll('.seg').forEach(function (seg) {
       var key = seg.getAttribute('data-key');
