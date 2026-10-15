@@ -211,6 +211,19 @@ html[data-photo="none"] .hero-tap{display:none}
 .hc .act .circ svg.i{width:21px;height:21px}
 .hc .act .lbl{font-size:11.5px}
 
+/* headline «Чим займаюся»: one short LinkedIn-style line that says who this person is */
+.headline{margin:6px 0 0;font-size:16px;font-weight:560;line-height:1.25;letter-spacing:-.01em;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.3);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transform-origin:0 100%}
+.hc .headline + .headline-add + .meta,.hc .headline + .meta{margin-top:4px}
+.mono .headline{text-align:center;margin-top:6px}
+.headline-add{display:none;margin-top:8px;height:30px;padding:0 12px 0 9px;border-radius:999px;align-items:center;gap:5px;
+  font-size:13px;font-weight:600;color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);border:0;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.headline-add svg.i{width:15px;height:15px;stroke-width:2.25}
+.mono .headline-add{margin:10px auto 0}
+html[data-headline="empty"] [data-mode="own"] .headline{display:none}
+html[data-headline="empty"] [data-mode="own"] .headline-add{display:inline-flex}
+
 /* glass (Apple "clear" variant — only on the poster + chrome, never on content cards) */
 .glass{background:rgba(255,255,255,.14);
   -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
@@ -556,6 +569,7 @@ html.reduced .viewer img{transform:none}
         <span class="cap glass" data-fg="badges" data-scale=".96" data-admin-only><svg class="i" data-i="shield"></svg>Адмін</span>
       </div>
       <h1 class="name" id="name" data-fg="name" data-scale=".92"><span>Олена</span><span>Коваленко</span></h1>
+      <p class="headline" data-fg="headline">Маркетологиня, засновниця агенції Kova</p><button class="headline-add pressable" data-fg="headline" data-act="headline"><svg class="i" data-i="plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Додайте, чим ви займаєтесь</button>
       <div class="meta" id="meta" data-fg="meta"><span>@olena_kov</span><span aria-hidden="true">·</span><span>учасник з бер. <span class="yr">2025</span></span></div>
       <div class="actions" id="actions" role="group" aria-label="Дії з профілем">
         <button class="act pressable" data-act="edit"><span class="circ glass illum" data-fg="actions" data-anchor="actions" data-scale=".9"><svg class="i" data-i="pencil"></svg></span><span class="lbl" data-fg="actions" data-anchor="actions">Редагувати</span></button>
@@ -569,6 +583,7 @@ html.reduced .viewer img{transform:none}
     <div class="mono" data-mode="own">
       <div class="mono-disc" data-fg="mdisc" data-scale=".9" aria-hidden="true">ОК</div>
       <h1 class="name" data-fg="mname" data-scale=".94"><span>Олена</span> <span>Коваленко</span></h1>
+      <p class="headline" data-fg="mheadline">Маркетологиня, засновниця агенції Kova</p><button class="headline-add pressable" data-fg="mheadline" data-act="headline"><svg class="i" data-i="plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Додайте, чим ви займаєтесь</button>
       <div class="meta" data-fg="mmeta"><span>@olena_kov</span><span aria-hidden="true">·</span><span>учасник з бер. <span class="yr">2025</span></span></div>
       <div class="badges">
         <span class="cap glass" data-fg="mbadges" data-scale=".96"><span class="dot" aria-hidden="true"></span>Бізнес</span>
@@ -583,6 +598,7 @@ html.reduced .viewer img{transform:none}
         <span class="cap glass" data-fg="badges" data-scale=".96"><span class="dot" aria-hidden="true"></span>Стандарт</span>
       </div>
       <h1 class="name" data-fg="name" data-scale=".92"><span>Андрій</span><span>Мельник</span></h1>
+      <p class="headline" data-fg="headline">Інженер-програміст у BMW</p>
       <div class="meta" data-fg="meta"><span>Мюнхен</span><span aria-hidden="true">·</span><span>У спільноті з <span class="yr">2024</span></span></div>
       <div class="actions n3" id="actions-m" role="group" aria-label="Дії з профілем учасника">
         <button class="act pressable primary" data-act="write" aria-label="Написати в Telegram"><span class="circ illum primary" data-fg="actions" data-anchor="actions-m" data-scale=".9"><svg class="i" data-i="send"></svg></span><span class="lbl" data-fg="actions" data-anchor="actions-m">Написати</span></button>
@@ -593,6 +609,7 @@ html.reduced .viewer img{transform:none}
     <div class="mono" data-mode="member" hidden>
       <div class="mono-disc" data-fg="mdisc" data-scale=".9" aria-hidden="true">АМ</div>
       <h1 class="name" data-fg="mname" data-scale=".94"><span>Андрій</span> <span>Мельник</span></h1>
+      <p class="headline" data-fg="mheadline">Інженер-програміст у BMW</p>
       <div class="meta" data-fg="mmeta"><span>Мюнхен</span><span aria-hidden="true">·</span><span>У спільноті з <span class="yr">2024</span></span></div>
       <div class="badges">
         <span class="cap glass" data-fg="mbadges" data-scale=".96"><span class="dot" aria-hidden="true"></span>Стандарт</span>
@@ -610,6 +627,7 @@ html.reduced .viewer img{transform:none}
         <span class="cap glass" data-fg="badges" data-scale=".96"><span class="dot" aria-hidden="true"></span>Стандарт</span>
       </div>
       <h1 class="name" data-fg="name" data-scale=".92"><span>Андрій</span><span>Мельник</span></h1>
+      <p class="headline" data-fg="headline">Інженер-програміст у BMW</p>
       <div class="meta" data-fg="meta"><span>Мюнхен</span><span aria-hidden="true">·</span><span>Стандарт</span></div>
       <div class="actions n3" id="actions-a" role="group" aria-label="Дії з профілем учасника">
         <button class="act pressable primary" data-act="medit" aria-label="Редагувати учасника"><span class="circ illum primary" data-fg="actions" data-anchor="actions-a" data-scale=".9"><svg class="i" data-i="pencil"></svg></span><span class="lbl" data-fg="actions" data-anchor="actions-a">Редагувати</span></button>
@@ -620,6 +638,7 @@ html.reduced .viewer img{transform:none}
     <div class="mono" data-mode="admin" hidden>
       <div class="mono-disc" data-fg="mdisc" data-scale=".9" aria-hidden="true">АМ</div>
       <h1 class="name" data-fg="mname" data-scale=".94"><span>Андрій</span> <span>Мельник</span></h1>
+      <p class="headline" data-fg="mheadline">Інженер-програміст у BMW</p>
       <div class="meta" data-fg="mmeta"><span>Мюнхен</span><span aria-hidden="true">·</span><span>Стандарт</span></div>
       <div class="badges">
         <span class="cap glass" data-fg="mbadges" data-scale=".96"><span class="dot ok" aria-hidden="true"></span>Активний</span>
@@ -1010,6 +1029,7 @@ const I = {
   home:'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   briefcase:'<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
   phone:'<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>',
+  plus:'<path d="M12 5v14"/><path d="M5 12h14"/>',
   eyeoff:'<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
   copy:'<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   check:'<path d="M20 6 9 17l-5-5"/>',
@@ -1064,6 +1084,7 @@ const state = {
   admin: P.get('admin') !== '0',
   motion: pick(P.get('motion'), ['full','reduced'], 'auto'),
   view: pick(P.get('view'), ['own','other'], 'own'),
+  headline: pick(P.get('headline'), ['set','empty'], 'set'),   // own view: filled «Чим займаюся» or its empty prompt
   viewAs: 'admin',   // in-page «Як адміністратор / Як учасник» (only meaningful for view=other + admin)
   lang: 'uk'
 };
@@ -1144,7 +1165,7 @@ function applyView(){
   if (other) { tp.removeAttribute('aria-current'); tm.setAttribute('aria-current', 'page'); }
   else { tm.removeAttribute('aria-current'); tp.setAttribute('aria-current', 'page'); }
 }
-function applyAll(animateTheme){ applyMotion(); applyTheme(animateTheme); applyAdmin(); applyView(); applyPhoto(); layout(); }
+function applyAll(animateTheme){ root.dataset.headline = state.headline; applyMotion(); applyTheme(animateTheme); applyAdmin(); applyView(); applyPhoto(); layout(); }
 
 /* ---------- layout (measure once + on resize; never inside the frame) ---------- */
 function computeH(){
@@ -1410,9 +1431,12 @@ addEventListener('message', e => {
   if (d.motion) state.motion = pick(d.motion, ['full','reduced','auto'], state.motion);
   const prevView = state.view, prevAdmin = state.admin;
   if (d.view) state.view = pick(d.view, ['own','other'], state.view);
+  const prevHeadline = state.headline;
+  if (d.headline) state.headline = pick(d.headline, ['set','empty'], state.headline);
   const viewChanged = state.view !== prevView, adminChanged = state.admin !== prevAdmin;
   if (viewChanged || adminChanged) state.viewAs = 'admin';   // outside switch resets the in-page toggle
   applyAll(true);
+  if (state.headline !== prevHeadline) layout();
   if (viewChanged || (adminChanged && state.view === 'other')) { stopSettle(); renderPull(0); window.scrollTo(0, 0); layout(); armReveal(true); }
 });
 applyAll(false);

@@ -85,9 +85,14 @@
   .open:hover { text-decoration: underline; }
   .hint { font-size: 13px; color: var(--muted); }
 
+  .h-sec { margin: 0; font-size: clamp(22px, 3vw, 28px); font-weight: 720; letter-spacing: -0.02em; }
+  .members { display: flex; flex-direction: column; gap: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .bench.one { grid-template-columns: minmax(0, 410px) minmax(0, 1fr); align-items: start; }
+  .bench.one .meta { margin: 0; }
   @media (max-width: 1180px) {
     .tabs { display: flex; }
     .bench { grid-template-columns: minmax(0, 1fr); }
+    .bench.one { grid-template-columns: minmax(0, 1fr); }
     .variant[hidden] { display: none !important; }
   }
   @media (max-width: 460px) {
@@ -107,6 +112,9 @@
     <div class="ctl"><span>Профіль</span><div class="seg" data-key="view">
       <button type="button" data-v="own" aria-pressed="true">Мій</button>
       <button type="button" data-v="other" aria-pressed="false">Інший учасник</button></div></div>
+    <div class="ctl"><span>Чим займаюся</span><div class="seg" data-key="headline">
+      <button type="button" data-v="set" aria-pressed="true">Заповнено</button>
+      <button type="button" data-v="empty" aria-pressed="false">Порожньо</button></div></div>
     <div class="ctl"><span>Тема</span><div class="seg" data-key="theme">
       <button type="button" data-v="system" aria-pressed="true">Система</button>
       <button type="button" data-v="light" aria-pressed="false">Світла</button>
@@ -195,12 +203,40 @@
       </div>
     </section>
   </div>
-  <p class="hint">Tip: «Без фото» shows the hero for members who haven't uploaded a photo yet. «Зменшений» previews the reduced-motion version. «Інший учасник» + «Адмін» shows the manager's view of a member, with attendance KPIs and the private note.</p>
+  <section class="members" aria-labelledby="members-h">
+    <header class="top">
+      <div class="eyebrow">/members · «Учасники» · in variant B's language</div>
+      <h2 id="members-h" class="h-sec">Members directory</h2>
+    </header>
+    <div class="bench one">
+      <div class="phone"><iframe title="Members directory prototype" data-src="members.html"></iframe></div>
+      <div class="meta">
+        <h2><span class="k">M</span>Who is who, at a glance</h2>
+        <p>Every row now says what the person does. The new «Чим займаюся» headline (one line, up to 60 characters, like LinkedIn's) is the row's main line, under the name. City and level sit below it in small grey text. Members without a headline get a two-line row with no gap.</p>
+        <div class="label">What's in it</div>
+        <ul>
+          <li>Large «Учасники 24» title. Search and filter chips stick under the Telegram pills, and a glass bar with a small title fades in once the big title has gone.</li>
+          <li>Search matches the name <b>and</b> the headline, and marks the matched part. Try «марк» or «юрист».</li>
+          <li>Filter chips: Місто, Рівень, Галузь, Інтереси. In this prototype each one toggles a single demo value.</li>
+          <li>Letter sections (А, Б, В…) stick while you scroll. The real list is already sorted by last name.</li>
+          <li>«Показати ще» opens the next batch, and there is an empty state for a search with no matches.</li>
+          <li>Tapping a row opens another member's profile in variant B.</li>
+        </ul>
+        <div class="label">For the app</div>
+        <ul>
+          <li>The headline is a new profile field. It needs a column, an edit-form input, and room in the directory API, which today returns only name, photo, city and level.</li>
+          <li>The real search would also need to cover the headline.</li>
+        </ul>
+        <a class="open" href="members.html" target="_blank" rel="noopener">Open full screen ↗</a>
+      </div>
+    </div>
+  </section>
+  <p class="hint">Tip: «Чим займаюся → Порожньо» shows the empty prompt on your own profile (variant B). «Без фото» shows the hero for members who haven't uploaded a photo yet. «Зменшений» previews the reduced-motion version. «Інший учасник» + «Адмін» shows the manager's view of a member, with attendance KPIs and the private note.</p>
 </div>
 
 <script>
   (function () {
-    var state = { view: 'own', theme: 'system', photo: '3x4', admin: '1', motion: 'full' };
+    var state = { view: 'own', theme: 'system', photo: '3x4', admin: '1', motion: 'full', headline: 'set' };
     try {
       var saved = JSON.parse(localStorage.getItem('pv-state') || 'null');
       if (saved && typeof saved === 'object') Object.assign(state, saved);
@@ -214,7 +250,7 @@
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     function msg() {
-      return { type: 'pv-state', view: state.view, theme: effectiveTheme(), photo: state.photo, admin: state.admin, motion: state.motion };
+      return { type: 'pv-state', view: state.view, theme: effectiveTheme(), photo: state.photo, admin: state.admin, motion: state.motion, headline: state.headline };
     }
     function push() {
       frames.forEach(function (f) { try { f.contentWindow && f.contentWindow.postMessage(msg(), '*'); } catch (e) {} });
@@ -223,7 +259,7 @@
     }
     function query() {
       var m = msg();
-      return '?view=' + m.view + '&theme=' + m.theme + '&photo=' + m.photo + '&admin=' + m.admin + '&motion=' + m.motion;
+      return '?view=' + m.view + '&theme=' + m.theme + '&photo=' + m.photo + '&admin=' + m.admin + '&motion=' + m.motion + '&headline=' + m.headline;
     }
     frames.forEach(function (f) {
       f.addEventListener('load', push);
