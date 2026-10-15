@@ -1,26 +1,29 @@
 <!doctype html>
 <!--
-  UA WELL /members — the «Учасники» directory in VARIANT B's language
-  =====================================================================
-  Idea: a calm Contacts-style directory where every row answers "who is this?" at a glance:
-  photo · name · «Чим займаюся» headline (the new one-line LinkedIn-style field) · city · level.
+  UA WELL /members — the «Учасники» directory in VARIANT B's language (v3, after the 5-angle review)
+  ==================================================================================================
+  Every row answers "who is this?": photo · name · «Чим займаюся» headline (ONE line, ellipsis) · city · package.
+  No headline -> the member's first industry, muted (a display fallback only, never stored as the headline).
 
-  LAYOUT (390x844, Telegram fullscreen, safe top T = 92)
-    large title «Учасники 24» in the flow, under the Telegram pills
-    tools (search + «Фільтри» button, then removable active-filter chips) stick at T; a glass bar fills 0..T+tools
-      once the title has scrolled away and a small centred «Учасники» fades in (one class toggle, nothing per frame)
-    SORT + SECTIONS by FIRST name (uk collation): «Роман Білик» lives under Р
-    letter headers stick under the tools
-    row: 52px photo / initials · name 16/620 · headline 14.5 (the row's main line) · city · level 13 tertiary
-      no headline -> two lines, no blank line
-    «Показати ще» reveals the next window (the real API pages by 100)
-  ALPHABET SCRUBBER (iPhone Contacts): the full Ukrainian alphabet down the right edge; press or drag a finger along
-    it and the list jumps to that letter (a letter with nobody jumps to the next one that has people). A bubble shows
-    the letter under the finger. Pointer capture, instant scroll, only re-scrolls when the letter changes.
-  FILTERS: one «Фільтри» button (count badge) opens the full filter sheet — Пакет · Місто · Інтереси · Сфера діяльності,
-    multi-select, live-apply like the app (OR inside a section, AND across sections). Footer: «Скинути» + «Показати N».
-  SEARCH matches name AND headline; the matched part is marked.
-  ROW TAP -> variant-b.html?view=other (the other-member profile).
+  DATA: realistic demo base (Штутгарт / Мюнхен / Аугсбург / Ульм / Фрідріхсгафен, real industry + interest labels).
+    The whole directory loads at once (~92 active members today fit in one request), so there is no «Показати ще».
+  LAYOUT (390x844, Telegram fullscreen, safe top T = 92 — the app uses --app-safe-top, not a constant)
+    large title «Учасники 25» (or «5 з 25» while searching/filtering)
+    sticky: search + «Фільтри» button (count badge) only. Active-filter chips sit in the flow and scroll away.
+    «Ви» card first: your own row exactly as others see it (or a prompt to add your headline).
+    one continuous plain list (no card per letter), hairlines inset to the text column, opaque sticky letter headers
+  SORT + SECTIONS by FIRST name, uk collation; non-Ukrainian-alphabet initials (Latin, digits) go to «#», last.
+  SEARCH: tokens AND-matched over name + headline + industry; apostrophes ' ’ ʼ fold together.
+    While a query is active: one flat ranked list (name prefix > name > headline > industry), no letters, no scrubber.
+  FILTER SHEET: Сфера діяльності · Місто · Інтереси · Пакет (all chips). Live-apply, OR inside a section, AND across.
+    Options are ordered by count when the sheet opens (stable while you tap); zero-count options fold under
+    «Ще N без збігів»; long sections show the top 8 + «Усі (N)». 0 results -> «Показати 0» + "remove X -> N" hint.
+  ACTIVE CHIPS: one per section («Місто: Мюнхен, Ульм ✕»), tap opens the sheet at that section; «Скинути» if 2+.
+  ALPHABET STRIP (iPhone Contacts): only for long lists (> 15 rows), hidden while searching or typing; uniform colour;
+    condenses to «А • В • …» when letters would be < 14px; bubble sits ~96px in from the edge, above the finger;
+    Telegram HapticFeedback.selectionChanged() per target change (navigator.vibrate is a no-op on iOS);
+    inset 16px from the edge on Android (system back-swipe zone). aria-hidden: headings are the accessible path.
+  ROW PRESS: background tint after 80ms, cancelled on move/scroll (no scale on rows).
 -->
 <html lang="uk" data-theme="system">
 <head>
@@ -118,8 +121,8 @@ html.locked,html.locked body{overflow:hidden}
 
 /* ---------- top glass (behind the Telegram pills) ---------- */
 #top{top:0;z-index:20;pointer-events:none;height:calc(var(--safe-top) + var(--tools-h,60px))}
-#top .glass-bar{position:absolute;inset:0;background:color-mix(in oklab,var(--bg) 80%,transparent);
-  -webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 .5px 0 var(--line);
+#top .glass-bar{position:absolute;inset:0;background:color-mix(in oklab,var(--bg) 82%,transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);box-shadow:0 .5px 0 var(--line);
   opacity:0;transition:opacity .22s ease}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ #top .glass-bar{background:var(--bg)} }
 #top .ttl{position:absolute;left:50%;top:70px;transform:translate(-50%,-50%) translateY(6px);font-size:15px;font-weight:650;letter-spacing:-.01em;
@@ -130,91 +133,107 @@ html.reduced #top .ttl{transform:translate(-50%,-50%)}
 
 /* ---------- flow ---------- */
 main{padding:calc(var(--safe-top) + 4px) 0 calc(var(--tabbar-h) + var(--safe-bottom) + 24px)}
-.lt-title{display:flex;align-items:baseline;gap:10px;margin:0 20px 10px;font-size:34px;font-weight:720;letter-spacing:-.03em;line-height:1.1}
-.lt-title .n{font:500 17px/1 var(--mono);color:var(--tertiary);letter-spacing:0;font-variant-numeric:tabular-nums}
+.lt-title{display:flex;align-items:baseline;gap:10px;margin:0 16px 8px 20px;font-size:34px;font-weight:720;letter-spacing:-.03em;line-height:1.1}
+.lt-title .n{font-size:17px;font-weight:500;color:var(--tertiary);letter-spacing:0;font-variant-numeric:tabular-nums}
 
 .tools{position:sticky;top:var(--safe-top);z-index:21;padding:6px 16px 10px}
-.trow{display:flex;gap:8px}
-.search{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 6px 0 12px;border-radius:12px;background:var(--tile);color:var(--tertiary)}
+.trow{display:flex;gap:8px;margin:0}
+.search{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 4px 0 12px;border-radius:12px;background:var(--tile);color:var(--muted);transition:background-color .2s ease}
 .search svg.i{width:18px;height:18px}
 .search input{flex:1;min-width:0;height:100%;border:0;background:none;outline:none;font:inherit;font-size:16px;color:var(--text);padding:0}
-.search input::placeholder{color:var(--tertiary)}
+.search input::placeholder{color:var(--muted)}
 .search input::-webkit-search-cancel-button{display:none}
-.search .clr{width:32px;height:32px;border-radius:50%;display:none;place-items:center;color:var(--tertiary)}
-.search .clr svg.i{width:16px;height:16px;stroke-width:2.25}
+.search:focus-within{background:color-mix(in oklab,var(--tile) 70%,var(--line))}
+.clr{flex:none;width:44px;height:44px;margin:0 -4px 0 0;border-radius:50%;display:none;place-items:center;color:var(--muted)}
+.clr svg.i{width:16px;height:16px;stroke-width:2.25}
 .search.has .clr{display:grid}
-.search:focus-within{box-shadow:0 0 0 2px var(--ink)}
 .fbtn{position:relative;flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--tile);color:var(--text);transition:background-color .2s ease,transform .25s var(--ease)}
 .fbtn svg.i{width:20px;height:20px}
 .fbtn.on{background:var(--brand);color:#1C1C1C}
 .fbtn .badge{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;display:none;place-items:center;
   font:700 11.5px/1 var(--font);font-variant-numeric:tabular-nums;color:var(--bg);background:var(--text);box-shadow:0 0 0 2px var(--bg)}
 .fbtn.on .badge{display:grid}
-.active{display:flex;gap:6px;margin:10px -16px 0;padding:0 16px;overflow-x:auto;scrollbar-width:none}
+html.reduced .fbtn{transition:background-color .2s ease}
+
+.active{display:flex;gap:6px;margin:0 0 6px;padding:2px 16px 4px;overflow-x:auto;scrollbar-width:none}
 .active::-webkit-scrollbar{display:none}
 .active:empty{display:none}
-.ac{flex:none;display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 6px 0 11px;border-radius:999px;font-size:13.5px;font-weight:550;
-  color:var(--ink);background:var(--tile-ink)}
-.ac svg.i{width:14px;height:14px;stroke-width:2.4}
-.ac .x{width:20px;height:20px;border-radius:50%;display:grid;place-items:center}
+.ac{flex:none;display:inline-flex;align-items:center;height:34px;border-radius:999px;font-size:14px;font-weight:550;color:var(--text);background:var(--tile);overflow:hidden}
+.ac .lb{height:100%;display:flex;align-items:center;padding:0 4px 0 12px;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac .lb b{font-weight:650;margin-right:4px;color:var(--muted)}
+.ac .x{width:34px;height:100%;display:grid;place-items:center;color:var(--muted)}
+.ac .x svg.i{width:14px;height:14px;stroke-width:2.4}
+.ac.all{padding:0 14px;color:var(--ink);background:none;box-shadow:inset 0 0 0 1px var(--line)}
+html:not(.reduced) .pressable{transition:transform .25s var(--ease)}
 html:not(.reduced) .pressable.is-pressed{transform:scale(.97)}
 
-.sec{margin-top:6px;scroll-margin-top:calc(var(--safe-top) + var(--tools-h,60px))}
-.lt{position:sticky;top:calc(var(--safe-top) + var(--tools-h,60px));z-index:10;margin:0;padding:10px 24px 6px;
-  font:650 13px/1 var(--mono);letter-spacing:.06em;color:var(--ink);background:linear-gradient(var(--bg) 70%,transparent)}
-.card{margin:0 30px 0 16px;background:var(--surface);border-radius:16px;box-shadow:var(--card-shadow);overflow:hidden}
-.m{position:relative;display:flex;align-items:center;gap:14px;padding:12px 14px;min-height:76px;width:100%;text-align:left;color:inherit;transition:background-color .2s ease}
-.m + .m::before{content:"";position:absolute;top:0;left:80px;right:0;height:1px;background:var(--hairline);transform:scaleY(.5);transform-origin:top}
-.m.is-pressed{background:var(--press)}
-.m:focus-visible{outline-offset:-3px;border-radius:16px}
-.av{width:52px;height:52px;border-radius:50%;flex:none;object-fit:cover;object-position:50% 25%;background:var(--tile)}
-.av.ini{display:grid;place-items:center;font-size:18px;font-weight:650;letter-spacing:-.02em;color:#fff;
-  background:radial-gradient(120% 120% at 28% 18%,var(--a1) 0,var(--a2) 100%)}
-.tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.nm{font-size:16px;font-weight:620;letter-spacing:-.012em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hl{font-size:14.5px;line-height:1.3;color:var(--text);opacity:.86;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mt{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tertiary);white-space:nowrap;overflow:hidden}
-.mt .lv{display:inline-flex;align-items:center;gap:5px}
-.lvdot{width:6px;height:6px;border-radius:50%;flex:none;background:var(--lvc,var(--tertiary))}
-.business{--lvc:var(--brand)} .standard{--lvc:#A8A29E} .start{--lvc:#D6D3D1}
-mark{background:rgba(255,137,18,.28);color:inherit;border-radius:3px;padding:0 1px}
+/* «Ви» card */
+.me{margin:4px 16px 14px;padding:4px 0;border-radius:16px;background:var(--surface);box-shadow:var(--card-shadow)}
+.me .cap{display:block;padding:8px 16px 0;font-size:12.5px;font-weight:600;color:var(--muted)}
+.me .m{padding-right:20px}
+.add{display:inline-flex;white-space:nowrap;align-items:center;gap:4px;font-size:14.5px;font-weight:600;color:var(--ink)}
+.add svg.i{width:15px;height:15px;stroke-width:2.4}
+.draft{font-size:12.5px;font-weight:600;color:var(--ink)}
 
-.more{display:flex;justify-content:center;margin:20px 30px 0 16px}
-.more button{height:44px;padding:0 20px;border-radius:999px;font-size:15px;font-weight:600;color:var(--ink);background:var(--surface);box-shadow:var(--card-shadow)}
-.foot{margin:16px 30px 0 16px;text-align:center;font-size:13px;color:var(--tertiary)}
-.empty{margin:56px 32px 0;text-align:center;color:var(--muted)}
-.empty .ic{width:56px;height:56px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:var(--tile);color:var(--tertiary)}
+/* list */
+#list ul{list-style:none;margin:0;padding:0}
+.lt{position:sticky;top:calc(var(--safe-top) + var(--tools-h,60px));z-index:10;margin:0;padding:8px 20px 5px;
+  font-size:14px;font-weight:650;letter-spacing:.01em;color:var(--muted);background:var(--bg);box-shadow:0 .5px 0 var(--hairline)}
+.m{position:relative;display:flex;align-items:center;gap:14px;padding:10px 44px 10px 16px;min-height:72px;width:100%;text-align:left;color:inherit;transition:background-color .15s ease}
+li + li > .m::before{content:"";position:absolute;top:0;left:82px;right:0;height:1px;background:var(--hairline);transform:scaleY(.5);transform-origin:top}
+.m.hl-press{background:var(--press)}
+.m:focus-visible{outline-offset:-3px;border-radius:12px}
+.av{width:52px;height:52px;border-radius:50%;flex:none;object-fit:cover;object-position:50% 25%;background:var(--tile)}
+.av.ini{display:grid;place-items:center;font-size:18px;font-weight:650;letter-spacing:-.02em;color:#1C1C1C;
+  background:radial-gradient(120% 120% at 28% 18%,#FFC27A 0,#FF8912 46%,#C2600A 100%)}
+.tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.nm{font-size:16px;font-weight:620;letter-spacing:-.012em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl{font-size:14.5px;line-height:1.3;font-weight:450;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl.fb{color:var(--tertiary);font-weight:400}
+.mt{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tertiary);white-space:nowrap;overflow:hidden}
+.lv{display:inline-flex;align-items:center;gap:5px}
+.lvdot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--lvc);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.business{--lvc:var(--brand)} .standard{--lvc:#8F8A82} .start{--lvc:transparent}
+.start .lvdot{box-shadow:inset 0 0 0 1.5px var(--tertiary)}
+mark{background:rgba(255,137,18,.30);color:inherit;font-weight:inherit;border-radius:3px;padding:0;box-shadow:0 0 0 1px rgba(255,137,18,.30)}
+.flat{margin-top:6px}
+
+.empty{margin:48px 28px 0;text-align:center;color:var(--muted)}
+.empty .ic{width:56px;height:56px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:var(--tile);color:var(--muted)}
 .empty h3{margin:0 0 6px;font-size:17px;font-weight:650;color:var(--text)}
 .empty p{margin:0 0 16px;font-size:14.5px}
-.empty button{height:40px;padding:0 16px;border-radius:999px;font-weight:600;color:var(--ink);background:var(--tile-ink)}
+.empty .btns{display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty button{min-height:44px;padding:0 18px;border-radius:999px;font-weight:600;color:var(--ink);background:var(--tile-ink)}
+.empty button.sec2{background:none;color:var(--muted)}
+html:not(.reduced) #list.first{animation:fadeIn .32s ease both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
-/* section reveal (once, opacity + 8px) */
-html:not(.reduced) .rv{opacity:0;transform:translateY(8px);transition:opacity .36s ease,transform .42s var(--ease)}
-html:not(.reduced) .rv.in{opacity:1;transform:none}
-
-/* ---------- alphabet scrubber (iPhone Contacts) ---------- */
-#idx{position:fixed;z-index:25;right:max(0px,calc((100vw - 430px) / 2));width:28px;
-  top:calc(var(--safe-top) + var(--title-h,58px) + var(--tools-h,60px) + 4px);bottom:calc(var(--tabbar-h) + var(--safe-bottom) + 10px);
+/* ---------- alphabet strip ---------- */
+#idx{position:fixed;z-index:25;right:calc(max(0px,(100vw - 430px) / 2) + var(--idx-inset,0px));width:28px;
+  top:calc(var(--safe-top) + var(--title-h,50px) + var(--tools-h,60px) + 8px);bottom:calc(var(--tabbar-h) + var(--safe-bottom) + 10px);
   display:flex;flex-direction:column;justify-content:center;align-items:center;touch-action:none;user-select:none;-webkit-user-select:none}
+html.android{--idx-inset:16px}
 #idx[hidden]{display:none}
 #idx ol{list-style:none;margin:0;padding:4px 0;display:flex;flex-direction:column;align-items:center;border-radius:14px;transition:background-color .2s ease}
-#idx li{font:650 10.5px/1 var(--font);color:var(--ink);height:var(--lh,15px);display:grid;place-items:center;width:28px}
-#idx li.off{color:var(--tertiary);opacity:.45}
+#idx li{font-size:11px;font-weight:650;line-height:1;color:var(--ink);height:var(--lh,15px);display:grid;place-items:center;width:28px}
+#idx li.dot{font-size:9px}
 #idx.drag ol{background:var(--tile)}
-#bubble{position:fixed;z-index:26;right:calc(max(0px,(100vw - 430px) / 2) + 40px);width:56px;height:56px;margin-top:-28px;border-radius:50%;
-  display:grid;place-items:center;font-size:26px;font-weight:700;color:#1C1C1C;background:var(--brand);
-  box-shadow:0 10px 24px -8px rgba(255,137,18,.7);opacity:0;transform:scale(.6);transition:opacity .15s ease,transform .2s var(--ease);pointer-events:none}
+#bubble{position:fixed;z-index:26;right:calc(max(0px,(100vw - 430px) / 2) + 96px);width:60px;height:60px;margin-top:-74px;border-radius:50%;
+  display:grid;place-items:center;font-size:28px;font-weight:700;color:var(--text);background:var(--surface);
+  box-shadow:0 0 0 .5px var(--line),0 12px 28px -8px rgba(0,0,0,.35);opacity:0;transform:scale(.7);transition:opacity .15s ease,transform .2s var(--ease);pointer-events:none}
 #bubble.on{opacity:1;transform:none}
+html.reduced #bubble{transform:none;transition:opacity .15s ease}
 
 /* ---------- filter sheet ---------- */
-.scrim{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:opacity .3s ease}
+.scrim{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:opacity .3s ease;touch-action:none}
 .scrim.open{opacity:1;pointer-events:auto}
 .sheet{position:fixed;left:0;right:0;margin:0 auto;width:100%;max-width:430px;bottom:0;z-index:71;max-height:calc(100% - var(--safe-top) - 6px);display:flex;flex-direction:column;
   background:var(--sheet-bg);border-radius:32px 32px 0 0;transform:translateY(105%);transition:transform .42s var(--ease);box-shadow:0 -12px 40px rgba(0,0,0,.2)}
 .sheet.open{transform:none}
 .sheet:focus{outline:none}
-html.reduced .sheet{transform:none;opacity:0;pointer-events:none;transition:opacity .15s ease}
-html.reduced .sheet.open{opacity:1;pointer-events:auto}
+.sheet:not(.open){visibility:hidden;transition:transform .42s var(--ease),visibility 0s .42s}
+html.reduced .sheet{transform:none;opacity:0;transition:opacity .15s ease,visibility 0s .15s}
+html.reduced .sheet.open{opacity:1;transition:opacity .15s ease}
 .sh-top{flex:none;padding:8px 16px 4px}
 .grab{width:36px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
 .sh-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px}
@@ -222,38 +241,39 @@ html.reduced .sheet.open{opacity:1;pointer-events:auto}
 .sh-x{background:var(--tile);border-radius:50%;width:32px;height:32px;display:grid;place-items:center;position:relative}
 .sh-x::after{content:"";position:absolute;inset:-6px}
 .sh-x svg.i{width:16px;height:16px;stroke-width:2.25}
-.sh-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px 16px 16px}
-.fs{margin-top:22px}
-.fs:first-child{margin-top:8px}
-.fs-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 4px 10px}
+.sh-note{margin:6px 4px 0;font-size:13px;color:var(--muted)}
+.sh-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 16px 16px}
+.fs{margin-top:22px;scroll-margin-top:8px}
+.fs:first-child{margin-top:10px}
+.fs-h{display:flex;align-items:center;justify-content:space-between;margin:0 4px 8px;min-height:32px}
 .fs-h h4{margin:0;font-size:15px;font-weight:650;letter-spacing:-.005em}
-.fs-h .cnt{font:600 12.5px/1 var(--mono);color:var(--ink)}
-.fs-h .clr2{font-size:13.5px;font-weight:600;color:var(--ink);padding:4px 0}
-.pk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.pk button{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border-radius:14px;background:var(--tile);text-align:left;
-  transition:background-color .2s ease,box-shadow .2s ease,transform .25s var(--ease)}
-.pk .lvdot{width:10px;height:10px}
-.pk b{font-size:15px;font-weight:650}
-.pk small{font-size:12px;color:var(--tertiary);font-variant-numeric:tabular-nums}
-.pk button[aria-pressed="true"]{background:var(--tile-ink);box-shadow:inset 0 0 0 1.5px var(--brand)}
-.fsearch{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:12px;background:var(--tile);color:var(--tertiary);margin-bottom:10px}
+.clr2{position:relative;font-size:13.5px;font-weight:600;color:var(--ink);padding:6px 0}
+.clr2::after{content:"";position:absolute;inset:-6px -8px}
+.fsearch{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:12px;background:var(--tile);color:var(--muted);margin-bottom:10px}
 .fsearch svg.i{width:16px;height:16px}
 .fsearch input{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;font-size:16px;color:var(--text)}
+.fsearch input::placeholder{color:var(--muted)}
 .tags{display:flex;flex-wrap:wrap;gap:8px}
-.tag{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:999px;font-size:14.5px;font-weight:550;color:var(--text);
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:8px 13px;border-radius:19px;font-size:14.5px;line-height:1.25;font-weight:550;color:var(--text);text-align:left;
   background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);transition:background-color .2s ease,box-shadow .2s ease,color .2s ease,transform .25s var(--ease)}
-.tag small{font-size:12px;color:var(--tertiary);font-variant-numeric:tabular-nums}
-.tag svg.i{width:15px;height:15px;stroke-width:2.6;display:none}
+.tag .c{font-size:12.5px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.tag svg.i{width:15px;height:15px;stroke-width:2.6;display:none;flex:none}
+.tag .lvdot{width:8px;height:8px}
 .tag[aria-pressed="true"]{background:var(--brand);color:#1C1C1C;box-shadow:none}
-.tag[aria-pressed="true"] small{color:rgba(28,28,28,.6)}
+.tag[aria-pressed="true"] .c{color:#1C1C1C}
 .tag[aria-pressed="true"] svg.i{display:block}
-.tag.zero{opacity:.45}
-.tags .none{font-size:14px;color:var(--tertiary);padding:6px 4px}
-.sh-foot{flex:none;display:flex;gap:10px;padding:12px 16px calc(var(--safe-bottom) + 8px);box-shadow:0 -.5px 0 var(--line)}
-.sh-foot button{height:50px;border-radius:14px;font-size:16px;font-weight:650}
-.sh-foot .rs{flex:none;padding:0 18px;color:var(--text);background:var(--tile)}
-.sh-foot .rs:disabled{opacity:.4}
-.sh-foot .go{flex:1;color:#1C1C1C;background:var(--brand);box-shadow:0 8px 20px -10px rgba(255,137,18,.8);font-variant-numeric:tabular-nums}
+.tag.zero:not([aria-pressed="true"]){color:var(--muted);background:none}
+.more2{min-height:38px;padding:0 6px;font-size:14px;font-weight:600;color:var(--ink)}
+.tags .none{font-size:14px;color:var(--muted);padding:6px 4px}
+.sh-foot{flex:none;padding:10px 16px calc(var(--safe-bottom) + 8px);box-shadow:0 -.5px 0 var(--line)}
+.hint{margin:0 4px 10px;font-size:13.5px;color:var(--muted)}
+.hint button{color:var(--ink);font-weight:600;min-height:32px}
+.fbtns{display:flex;gap:10px}
+.fbtns button{height:50px;border-radius:14px;font-size:16px;font-weight:650}
+.fbtns .rs{flex:none;padding:0 18px;color:var(--text);background:var(--tile)}
+.fbtns .rs:disabled{opacity:.45}
+.fbtns .go{flex:1;color:#1C1C1C;background:var(--brand);box-shadow:0 8px 20px -10px rgba(255,137,18,.8);font-variant-numeric:tabular-nums}
+.fbtns .go.zero{color:var(--text);background:var(--tile);box-shadow:none}
 
 /* ---------- tab bar ---------- */
 .tabbar{bottom:0;z-index:40;height:calc(var(--tabbar-h) + var(--safe-bottom))}
@@ -294,21 +314,22 @@ html.reduced .sheet.open{opacity:1;pointer-events:auto}
 <main class="col" id="flow">
   <h1 class="lt-title" id="title">Учасники <span class="n" id="count"></span></h1>
   <div class="tools" id="tools">
-    <div class="trow">
-      <label class="search" id="search">
+    <form class="trow" role="search" id="sform">
+      <div class="search" id="search">
         <svg class="i" data-i="search"></svg>
-        <span class="sr-only">Пошук учасників</span>
-        <input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Ім'я або чим займається">
+        <input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" aria-label="Пошук учасників" placeholder="Ім'я або професія">
         <button class="clr" id="clr" type="button" aria-label="Очистити пошук"><svg class="i" data-i="x"></svg></button>
-      </label>
-      <button class="fbtn pressable" id="fbtn" type="button" aria-haspopup="dialog" aria-controls="sheet" aria-label="Фільтри"><svg class="i" data-i="sliders"></svg><span class="badge" id="fbadge"></span></button>
-    </div>
-    <div class="active" id="activeChips" aria-label="Увімкнені фільтри"></div>
+      </div>
+      <button class="fbtn pressable" id="fbtn" type="button" aria-haspopup="dialog" aria-controls="sheet" aria-label="Фільтри"><svg class="i" data-i="sliders"></svg><span class="badge" id="fbadge" aria-hidden="true"></span></button>
+    </form>
   </div>
-  <div id="list" aria-live="polite"></div>
+  <div class="active" id="activeChips" role="group" aria-label="Увімкнені фільтри"></div>
+  <div id="meSlot"></div>
+  <div id="list" class="first"></div>
+  <p class="sr-only" role="status" id="status"></p>
 </main>
 
-<nav id="idx" aria-label="Перейти до літери"><ol id="idxList"></ol></nav>
+<nav id="idx" aria-hidden="true"><ol id="idxList"></ol></nav>
 <div id="bubble" aria-hidden="true"></div>
 
 <nav class="tabbar fixed-col" aria-label="Основна навігація">
@@ -328,9 +349,13 @@ html.reduced .sheet.open{opacity:1;pointer-events:auto}
   <div class="sh-top">
     <div class="grab" aria-hidden="true"></div>
     <div class="sh-head"><h3 id="sh-h">Фільтри</h3><button class="sh-x pressable" id="shX" type="button" aria-label="Закрити"><svg class="i" data-i="x"></svg></button></div>
+    <p class="sh-note" id="shNote" hidden></p>
   </div>
   <div class="sh-body" id="shBody"></div>
-  <div class="sh-foot"><button class="rs pressable" id="shReset" type="button">Скинути</button><button class="go pressable" id="shGo" type="button"></button></div>
+  <div class="sh-foot">
+    <p class="hint" id="shHint" hidden></p>
+    <div class="fbtns"><button class="rs pressable" id="shReset" type="button">Скинути</button><button class="go pressable" id="shGo" type="button" aria-live="polite"></button></div>
+  </div>
 </div>
 
 <div class="sys fixed-col" aria-hidden="true" style="top:0;height:92px">
@@ -392,258 +417,437 @@ const I = {
 };
 I.search = '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>';
 I.sliders = '<path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2"/><path d="M4 17h2"/><path d="M10 17h10"/><circle cx="8" cy="17" r="2"/>';
-const paint = (r = document) => r.querySelectorAll('svg[data-i]').forEach(s => { s.setAttribute('viewBox','0 0 24 24'); s.setAttribute('aria-hidden','true'); s.innerHTML = I[s.dataset.i] || ''; });
-paint();
+document.querySelectorAll('svg[data-i]').forEach(s => { s.setAttribute('viewBox','0 0 24 24'); s.setAttribute('aria-hidden','true'); s.innerHTML = I[s.dataset.i] || ''; });
+const svg = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
 
 const $ = (q, r = document) => r.querySelector(q), $$ = (q, r = document) => [...r.querySelectorAll(q)];
 const root = document.documentElement;
 const P = new URLSearchParams(location.search);
 const pick = (v, ok, d) => ok.includes(v) ? v : d;
-const state = { theme: pick(P.get('theme'), ['light','dark','system'], 'system'), motion: pick(P.get('motion'), ['full','reduced'], 'auto') };
+const state = { theme: pick(P.get('theme'), ['light','dark','system'], 'system'), motion: pick(P.get('motion'), ['full','reduced'], 'auto'),
+  headline: pick(P.get('headline'), ['set','empty','draft'], 'set') };
 const mqRed = matchMedia('(prefers-reduced-motion: reduce)');
 function applyTheme(){ root.dataset.theme = state.theme; }
 function applyMotion(){ root.classList.toggle('reduced', state.motion === 'reduced' || (state.motion === 'auto' && mqRed.matches)); }
+if (/Android/i.test(navigator.userAgent)) root.classList.add('android');
 
-/* ---------- demo data (level labels: Старт / Стандарт / Бізнес) ---------- */
+/* ---------- demo data: realistic cities + the app's real industry / interest labels ---------- */
 const LV = { start:'Старт', standard:'Стандарт', business:'Бізнес' };
+const IND = {
+  cons:'Консалтинг, коучинг та бізнес-експертиза', it:'IT, розробка програмного забезпечення, SaaS та цифрові рішення',
+  retail:'Роздрібна торгівля', mkt:'Маркетинг, реклама, PR та комунікації', build:'Будівництво, ремонт та девелопмент',
+  design:'Дизайн, креативні індустрії та брендинг', edu:'Освіта та навчання', beauty:'Beauty-сфера',
+  fin:'Фінансові послуги, бухгалтерія та податки', estate:'Нерухомість', logi:'Логістика та транспорт',
+  psy:'Психологія, терапія та допомагаючі практики', med:'Медицина, здоров’я та wellness', hr:'HR, рекрутинг та розвиток команд',
+  event:'Організація заходів та івент-індустрія', food:'HoReCa / гастрономія', law:'Юридичні послуги', auto:'Автомобільна сфера, машинобудування та промисловість',
+};
+const INT = { biz:'Розвиток власного бізнесу', sales:'Пошук клієнтів та розвиток продажів', net:'Нетворкінг та нові знайомства', ai:'Штучний інтелект (AI) та нові технології',
+  travel:'Подорожі', start:'Запуск бізнесу в Німеччині', brand:'Особистий бренд та публічність', sport:'Спорт, здоров’я та wellness', family:'Сім’я та діти' };
 const A = 'assets/m/';
+const ME_ID = 0;
 const M = [
-  ['Олена','Коваленко','Маркетологиня, засновниця агенції Kova','Франкфурт','business','Маркетинг',['Нетворкінг','Бізнес-сніданки'],'assets/portrait-3x4.jpg'],
-  ['Андрій','Мельник','Інженер-програміст у BMW','Мюнхен','standard','IT',['Спорт','Подорожі'],'assets/other-3x4.jpg'],
-  ['Давид','Кім','Фотограф, знімає весілля та бізнес-портрети','Берлін','standard','Медіа',['Мистецтво','Подорожі'],'assets/alt-2x3.jpg'],
-  ['Ірина','Бондаренко','Податкова консультантка для українських ФОП у Німеччині','Франкфурт','business','Фінанси',['Нетворкінг'],A+'women-44.jpg'],
-  ['Тарас','Шевчук','Шеф-кухар, ресторан «Борщ & Co»','Гамбург','start','Гастрономія',['Кулінарія','Волонтерство'],A+'men-32.jpg'],
-  ['Марія','Ткаченко','','Кельн','start','Освіта',['Мистецтво','Танці']],
-  ['Олег','Савченко','Архітектор житлових будинків','Штутгарт','standard','Будівництво',['Спорт'],A+'men-46.jpg'],
-  ['Наталія','Лисенко','HR-директорка, Siemens Healthineers','Мюнхен','business','HR',['Нетворкінг','Бізнес-сніданки'],A+'women-68.jpg'],
-  ['Богдан','Гнатюк','Юрист з міграційного права','Берлін','business','Право',['Подорожі'],A+'men-75.jpg'],
-  ['Софія','Іваненко','UX-дизайнерка мобільних застосунків','Франкфурт','standard','IT',['Мистецтво','Танці'],A+'women-12.jpg'],
-  ['Юрій','Остапчук','','Гамбург','start','Логістика',['Спорт']],
-  ['Катерина','Захарченко','Лікарка-стоматологиня, власна практика','Кельн','business','Медицина',['Подорожі','Волонтерство'],A+'women-65.jpg'],
-  ['Віктор','Руденко','Фінансовий радник, інвестиції та пенсія','Франкфурт','business','Фінанси',['Нетворкінг','Бізнес-сніданки'],A+'men-52.jpg'],
-  ['Ганна','Яковенко','Викладачка німецької для дорослих','Штутгарт','start','Освіта',['Кулінарія'],A+'women-32.jpg'],
-  ['Максим','Поліщук','Засновник логістичної компанії Polyshchuk Cargo','Мюнхен','business','Логістика',['Подорожі','Бізнес-сніданки'],A+'men-86.jpg'],
-  ['Олександра','Дорошенко','Психологиня, працює з підлітками','Берлін','standard','Медицина',['Мистецтво','Волонтерство'],A+'women-79.jpg'],
-  ['Євген','Кравчук','Data-аналітик у Deutsche Bank','Франкфурт','standard','IT',['Спорт'],A+'men-22.jpg'],
-  ['Аліна','Мороз','Контент-креаторка, тревел-блог','Гамбург','start','Медіа',['Подорожі','Танці'],A+'women-90.jpg'],
-  ['Роман','Білик','Ріелтор, комерційна нерухомість','Кельн','standard','Нерухомість',['Нетворкінг'],A+'men-41.jpg'],
-  ['Людмила','Гончар','Організаторка подій і конференцій','Франкфурт','business','Маркетинг',['Нетворкінг','Танці'],A+'women-26.jpg'],
-  ['Петро','Вовк','Електрик, свій бізнес з монтажу сонячних панелей','Штутгарт','standard','Будівництво',['Спорт','Волонтерство'],A+'men-64.jpg'],
-  ['Діана','Єрмоленко','SMM-менеджерка для локальних брендів','Берлін','start','Маркетинг',['Мистецтво'],A+'women-57.jpg'],
-  ['Ігор','Зінченко','Кардіолог, Universitätsklinikum Köln','Кельн','business','Медицина',['Подорожі'],A+'men-11.jpg'],
-  ['Христина','Ющенко','Бухгалтерка для малого бізнесу','Мюнхен','standard','Фінанси',['Кулінарія','Бізнес-сніданки'],A+'women-21.jpg'],
-].map(([f,l,h,c,lv,ind,int,ph], i) => ({ id:i, f, l, h, c, lv, ind, int, ph }));
+  // [first, last, headline, city, level, industries[], interests[], photo]
+  ['Олена','Коваленко','Маркетологиня, засновниця агенції Kova','Штутгарт','business',['mkt'],['net','brand'],'assets/portrait-3x4.jpg'],
+  ['Андрій','Мельник','Інженер-програміст у BMW','Мюнхен','standard',['it','auto'],['sport','travel'],'assets/other-3x4.jpg'],
+  ['Давид','Кім','Фотограф: весілля та бізнес-портрети','Аугсбург','standard',['design'],['brand','travel'],'assets/alt-2x3.jpg'],
+  ['Ірина','Бондаренко','Податкова консультантка для українських ФОП','Штутгарт','business',['fin','cons'],['start','net'],A+'women-44.jpg'],
+  ['Тарас','Шевчук','Шеф-кухар, ресторан «Борщ & Co»','Ульм','start',['food'],['biz'],A+'men-32.jpg'],
+  ['Марія','Ткаченко','','Фрідріхсгафен','start',['edu'],['family']],
+  ['Олег','Савченко','Архітектор житлових будинків','Штутгарт','standard',['build'],['sport'],A+'men-46.jpg'],
+  ['Наталія','Лисенко','HR-директорка, Siemens Healthineers','Мюнхен','business',['hr'],['net','biz'],A+'women-68.jpg'],
+  ['Богдан','Гнатюк','Юрист з міграційного права','Мюнхен','business',['law'],['start'],A+'men-75.jpg'],
+  ['Софія','Іваненко','UX-дизайнерка мобільних застосунків','Штутгарт','standard',['design','it'],['ai'],A+'women-12.jpg'],
+  ['Юрій','Остапчук','','','start',['logi'],['sport']],
+  ['Катерина','Захарченко','Стоматологиня, власна практика в Ульмі','Ульм','business',['med'],['family','travel'],A+'women-65.jpg'],
+  ['Віктор','Руденко','Фінансовий радник: інвестиції та пенсія','Аугсбург','business',['fin'],['biz','net'],A+'men-52.jpg'],
+  ['Ганна','Яковенко','Викладачка німецької для дорослих','Штутгарт','start',['edu'],['start'],A+'women-32.jpg'],
+  ['Максим','Поліщук','Засновник логістичної компанії Polyshchuk Cargo','Мюнхен','business',['logi'],['biz','sales'],A+'men-86.jpg'],
+  ['Олександра','Дорошенко','Психологиня, працює з підлітками','Мюнхен','standard',['psy'],['family'],A+'women-79.jpg'],
+  ['Євген','Кравчук','Data-аналітик у Bosch','Штутгарт','standard',['it'],['ai','sport'],A+'men-22.jpg'],
+  ['Аліна','Мороз','Б’юті-майстриня, студія брів і вій','Ульм','start',['beauty'],['brand'],A+'women-90.jpg'],
+  ['Роман','Білик','Ріелтор, комерційна нерухомість','Штутгарт','standard',['estate'],['sales','net'],A+'men-41.jpg'],
+  ['Людмила','Гончар','Організаторка подій і конференцій','Мюнхен','business',['event','mkt'],['net'],A+'women-26.jpg'],
+  ['Петро','Вовк','Монтаж сонячних панелей, власна фірма','Фрідріхсгафен','standard',['build'],['biz'],A+'men-64.jpg'],
+  ['Діана','Єрмоленко','SMM-менеджерка для локальних брендів','Аугсбург','start',['mkt'],['brand','ai'],A+'women-57.jpg'],
+  ['Ігор','Зінченко','Кардіолог, Universitätsklinikum Ulm','Ульм','business',['med'],['travel'],A+'men-11.jpg'],
+  ['Христина','Ющенко','Бухгалтерка для малого бізнесу','Мюнхен','standard',['fin'],['family','start'],A+'women-21.jpg'],
+  ['Sergiy','Melnyk','','Штутгарт','standard',[],['sales']],
+].map(([f,l,h,c,lv,ind,int,ph], id) => ({ id, f, l, h, c, lv, ind: ind.map(k => IND[k]), int: int.map(k => INT[k]), ph }));
+
+/* ---------- names: one grouping key, used for sort, sections and the strip ---------- */
 const coll = new Intl.Collator('uk');
-// sort by FIRST name, then last name
-M.sort((a, b) => coll.compare(a.f, b.f) || coll.compare(a.l, b.l));
-const ALPHA = 'АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЮЯ'.split('');
-const letterOf = m => m.f[0].toLocaleUpperCase('uk');
-
-/* ---------- filters (multi-select; OR inside a section, AND across) ---------- */
-const uniq = arr => [...new Set(arr)].sort(coll.compare);
-const SECTIONS = [
-  { key:'lv',  title:'Пакет',            opts: ['start','standard','business'], label: v => LV[v], kind:'pk' },
-  { key:'c',   title:'Місто',            opts: uniq(M.map(m => m.c)),        search:'Пошук міста…' },
-  { key:'int', title:'Інтереси',         opts: uniq(M.flatMap(m => m.int)),  search:'Пошук інтересу…' },
-  { key:'ind', title:'Сфера діяльності', opts: uniq(M.map(m => m.ind)),      search:'Пошук сфери…' },
-];
-const sel = { lv:new Set(), c:new Set(), int:new Set(), ind:new Set() };
-const fq = { c:'', int:'', ind:'' };
-const has = (m, key, vals) => key === 'int' ? m.int.some(v => vals.has(v)) : vals.has(m[key]);
-function passFilters(m, skip){ for (const k in sel) if (k !== skip && sel[k].size && !has(m, k, sel[k])) return false; return true; }
-const selCount = () => Object.values(sel).reduce((n, s) => n + s.size, 0);
-
-const WINDOW = 14;
-let shown = WINDOW, query = '';
-
-const PAL = [['#FFB257','#C2600A'],['#F59E8B','#B4432B'],['#9DB4A0','#4D6B52'],['#A9B7D1','#4B5D82'],['#D8B4A0','#8A5A44'],['#C7B3E0','#6E5594']];
-const hash = s => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
-const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[ch]);
-function mark(text, q){
-  if (!q) return esc(text);
-  const i = text.toLocaleLowerCase('uk').indexOf(q); if (i < 0) return esc(text);
-  return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+const ALPHA = 'АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЮЯ'.split('').concat('#');
+const graphemes = s => Array.from(s.normalize('NFC'));
+function letterOf(m){
+  const g = graphemes((m.f || '').replace(/^[^\p{L}]+/u, ''))[0];
+  const L = g ? g.toLocaleUpperCase('uk') : '#';
+  return ALPHA.includes(L) ? L : '#';
 }
-function avatar(m){
-  if (m.ph) return `<img class="av" src="${m.ph}" alt="" loading="lazy" decoding="async">`;
-  const [a1, a2] = PAL[hash(m.f + m.l) % PAL.length];
-  return `<span class="av ini" style="--a1:${a1};--a2:${a2}" aria-hidden="true">${m.f[0]}${m.l[0]}</span>`;
-}
-function row(m, q){
-  return `<a class="m pressable" href="variant-b.html?view=other&admin=0">${avatar(m)}<span class="tx">`
-    + `<span class="nm">${mark(`${m.f} ${m.l}`, q)}</span>`
-    + (m.h ? `<span class="hl">${mark(m.h, q)}</span>` : '')
-    + `<span class="mt"><span>${esc(m.c)}</span><span aria-hidden="true">·</span><span class="lv ${m.lv}"><span class="lvdot"></span>${LV[m.lv]}</span></span>`
-    + `</span></a>`;
-}
-const normQ = () => query.trim().toLocaleLowerCase('uk');
-const passQuery = (m, q) => !q || `${m.f} ${m.l}`.toLocaleLowerCase('uk').includes(q) || m.h.toLocaleLowerCase('uk').includes(q);
-const results = () => { const q = normQ(); return M.filter(m => passFilters(m) && passQuery(m, q)); };
+function initials(m){ const a = graphemes(m.f || '')[0] || '', b = graphemes(m.l || '')[0] || ''; return (a + b).toLocaleUpperCase('uk') || '?'; }
+M.forEach(m => m.L = letterOf(m));
+M.sort((a, b) => (ALPHA.indexOf(a.L) - ALPHA.indexOf(b.L)) || coll.compare(a.f, b.f) || coll.compare(a.l, b.l));
+const ME = M.find(m => m.id === ME_ID);
+const ME_HEADLINE = ME.h;
 
-let present = new Set(), hitsNow = [];
-function render(){
-  const q = normQ();
-  const hits = results(); hitsNow = hits;
-  $('#count').textContent = hits.length;
-  const list = $('#list');
-  if (!hits.length) {
-    list.innerHTML = `<div class="empty"><div class="ic"><svg class="i" viewBox="0 0 24 24">${I.search}</svg></div>`
-      + `<h3>Нікого не знайдено</h3><p>${q ? `За запитом «${esc(query.trim())}» немає учасників.` : 'Жоден учасник не підходить під ці фільтри.'}</p>`
-      + `<button id="reset" type="button">Скинути пошук і фільтри</button></div>`;
-    $('#reset').onclick = () => { setQuery(''); clearAll(); };
-    present = new Set(); buildIndex(); return;
+/* ---------- search: tokens, folded apostrophes, AND across tokens ---------- */
+const foldCh = ch => /['’‘ʼʹ`′]/.test(ch) ? "'" : (ch.toLocaleLowerCase('uk')[0] || ch);
+const fold = s => Array.from(s).map(foldCh).join('');
+const tokens = () => fold(query).split(/\s+/).filter(Boolean).slice(0, 6);
+const nameOf = m => `${m.f} ${m.l}`;
+function score(m, toks){ // lower is better; Infinity = no match
+  const name = fold(nameOf(m)), hl = fold(m.h), ind = fold(m.ind.join(' · '));
+  let worst = 0;
+  for (const t of toks) {
+    let s = Infinity;
+    if (name.split(' ').some(w => w.startsWith(t))) s = 0;
+    else if (name.includes(t)) s = 1;
+    else if (hl.includes(t)) s = 2;
+    else if (ind.includes(t)) s = 3;
+    if (s === Infinity) return Infinity;
+    worst = Math.max(worst, s);
   }
-  const page = hits.slice(0, shown);
-  const groups = new Map();
-  page.forEach(m => { const L = letterOf(m); if (!groups.has(L)) groups.set(L, []); groups.get(L).push(m); });
-  let html = '';
-  for (const [L, ms] of groups) html += `<section class="sec rv" id="sec-${L}" aria-label="${L}"><h2 class="lt">${L}</h2><div class="card">${ms.map(m => row(m, q)).join('')}</div></section>`;
-  if (hits.length > shown) html += `<div class="more"><button id="more" class="pressable" type="button">Показати ще</button></div>`;
-  html += `<p class="foot">Показано ${page.length} з ${hits.length}</p>`;
-  list.innerHTML = html;
-  const more = $('#more'); if (more) more.onclick = () => { shown += WINDOW; render(); };
-  present = new Set(hits.map(letterOf));   // every letter in the result, not only the loaded window
-  buildIndex(); armReveal();
+  return worst;
 }
-function setQuery(v){ query = v; $('#q').value = v; $('#search').classList.toggle('has', !!v); shown = WINDOW; }
-function clearAll(){ for (const k in sel) sel[k].clear(); for (const k in fq) fq[k] = ''; afterFilter(); }
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[ch]);
+function mark(text, toks){ // fold is 1:1 per code point, so indices line up with the original
+  if (!toks.length) return esc(text);
+  const chars = Array.from(text), f = chars.map(foldCh);
+  const on = new Array(chars.length).fill(false);
+  for (const t of toks) { const tc = Array.from(t); outer: for (let i = 0; i + tc.length <= f.length; i++) { for (let j = 0; j < tc.length; j++) if (f[i + j] !== tc[j]) continue outer; for (let j = 0; j < tc.length; j++) on[i + j] = true; break; } }
+  let out = '', open = false;
+  chars.forEach((c, i) => { if (on[i] && !open) { out += '<mark>'; open = true; } if (!on[i] && open) { out += '</mark>'; open = false; } out += esc(c); });
+  return out + (open ? '</mark>' : '');
+}
 
-/* active-filter chips + badge */
+/* ---------- filters: OR inside a section, AND across ---------- */
+const SECTIONS = [
+  { key:'ind', title:'Сфера діяльності', search:'Пошук сфери…', all: () => [...new Set(M.flatMap(m => m.ind))] },
+  { key:'c',   title:'Місто',            search:'Пошук міста…', all: () => [...new Set(M.map(m => m.c).filter(Boolean))] },
+  { key:'int', title:'Інтереси',         search:'Пошук інтересу…', all: () => [...new Set(M.flatMap(m => m.int))] },
+  { key:'lv',  title:'Пакет', all: () => ['start','standard','business'], label: v => LV[v], fixed: true },
+];
+const SEC = Object.fromEntries(SECTIONS.map(s => [s.key, s]));
+const sel = { ind:new Set(), c:new Set(), int:new Set(), lv:new Set() };
+const labelOf = (k, v) => SEC[k].label ? SEC[k].label(v) : v;
+const has = (m, k, vals) => (k === 'ind' || k === 'int') ? m[k].some(v => vals.has(v)) : vals.has(m[k]);
+const passFilters = (m, skip) => { for (const k in sel) if (k !== skip && sel[k].size && !has(m, k, sel[k])) return false; return true; };
+const selCount = () => Object.values(sel).reduce((n, s) => n + s.size, 0);
+const activeSections = () => SECTIONS.filter(s => sel[s.key].size);
+
+let query = '';
+function results(){ const t = tokens(); return M.filter(m => passFilters(m) && score(m, t) < Infinity); }
+
+/* ---------- rows ---------- */
+function avatar(m){
+  if (m.ph) return `<img class="av" src="${esc(m.ph)}" alt="" loading="lazy" decoding="async" data-ini="${esc(initials(m))}">`;
+  return `<span class="av ini" aria-hidden="true">${esc(initials(m))}</span>`;
+}
+// broken photo -> initials (capture phase: error doesn't bubble)
+document.addEventListener('error', e => { const t = e.target; if (t.tagName === 'IMG' && t.dataset.ini) { const s = document.createElement('span'); s.className = 'av ini'; s.textContent = t.dataset.ini; t.replaceWith(s); } }, true);
+function second(m, toks){
+  if (m.h) return `<span class="hl">${mark(m.h, toks)}</span>`;
+  if (m.ind.length) return `<span class="hl fb">${mark(m.ind[0], toks)}</span>`;   // display fallback only
+  return '';
+}
+// search matched only on an industry the row doesn't show: show that industry (marked) instead of city · package
+function whyLine(m, toks){
+  if (!toks.length || !m.h) return '';
+  const f = fold(nameOf(m) + ' ' + m.h);
+  if (toks.every(t => f.includes(t))) return '';
+  const hit = m.ind.find(v => toks.some(t => fold(v).includes(t)));
+  return hit ? `<span class="mt">Сфера: ${mark(hit, toks)}</span>` : '';
+}
+function meta(m){
+  const parts = [];
+  if (m.c) parts.push(`<span>${esc(m.c)}</span>`);
+  parts.push(`<span class="lv ${m.lv}"><span class="lvdot"></span>${LV[m.lv]}</span>`);
+  return `<span class="mt">${parts.join('<span aria-hidden="true">·</span>')}</span>`;
+}
+function row(m, toks){
+  const sr = [m.h || m.ind[0] || '', m.c, LV[m.lv]].filter(Boolean).join(', ');
+  return `<a class="m" href="variant-b.html?view=other&admin=0" aria-label="${esc(nameOf(m))}, ${esc(sr)}">${avatar(m)}<span class="tx" aria-hidden="true">`
+    + `<span class="nm">${mark(nameOf(m), toks)}</span>${second(m, toks)}${whyLine(m, toks) || meta(m)}</span></a>`;
+}
+
+/* «Ви» card: your own row exactly as others see it */
+function renderMe(){
+  const slot = $('#meSlot');
+  ME.h = state.headline === 'empty' ? '' : ME_HEADLINE;
+  if (query.trim() || selCount()) { slot.innerHTML = ''; return; }
+  let line;
+  if (state.headline === 'empty') line = `<span class="add">${svg('plus')}Додайте, чим ви займаєтесь</span>`;
+  else if (state.headline === 'draft') line = `<span class="hl">${esc(ME_HEADLINE)}</span><span class="draft">Чернетка з анкети · підтвердіть у профілі</span>`;
+  else line = `<span class="hl">${esc(ME.h)}</span>`;
+  slot.innerHTML = `<div class="me"><span class="cap">Ви · так вас бачать інші</span>`
+    + `<a class="m" href="variant-b.html${state.headline !== 'set' ? '?headline=' + state.headline : ''}" aria-label="Ваш профіль">${avatar(ME)}<span class="tx" aria-hidden="true"><span class="nm">${esc(nameOf(ME))}</span>${line}${meta(ME)}</span></a></div>`;
+}
+
+let present = new Set();
+function render(){
+  const toks = tokens(), searching = toks.length > 0;
+  renderMe();
+  const hits = results();
+  const total = M.length, narrowed = searching || selCount() > 0;
+  $('#count').textContent = narrowed ? `${hits.length} з ${total}` : total;
+  $('#status').textContent = narrowed ? `Знайдено ${hits.length}` : '';
+  const list = $('#list');
+  if (!hits.length) { renderEmpty(list, toks); present = new Set(); syncIdx(0); return; }
+  let html = '';
+  if (searching) {
+    const ranked = hits.map(m => [score(m, toks), m]).sort((a, b) => a[0] - b[0] || coll.compare(a[1].f, b[1].f)).map(x => x[1]);
+    html = `<ul class="flat" role="list">${ranked.map(m => `<li>${row(m, toks)}</li>`).join('')}</ul>`;
+    present = new Set();
+  } else {
+    const groups = new Map();
+    hits.forEach(m => { if (!groups.has(m.L)) groups.set(m.L, []); groups.get(m.L).push(m); });
+    for (const [L, ms] of groups) html += `<section class="sec" id="sec-${L === '#' ? 'hash' : L}"><h2 class="lt">${L}</h2><ul role="list">${ms.map(m => `<li>${row(m, toks)}</li>`).join('')}</ul></section>`;
+    present = new Set(groups.keys());
+  }
+  list.innerHTML = html;
+  syncIdx(hits.length);
+}
+function renderEmpty(list, toks){
+  const q = query.trim(), f = selCount();
+  const withoutFilters = toks.length ? M.filter(m => score(m, toks) < Infinity).length : 0;
+  let text, btns = '';
+  if (q && f) {
+    text = `За запитом «${esc(q)}» з увімкненими фільтрами — нікого.${withoutFilters ? ` Без фільтрів знайдеться ${withoutFilters}.` : ''}`;
+    if (withoutFilters) btns += `<button type="button" data-e="dropf">Шукати серед усіх (${withoutFilters})</button>`;
+    btns += `<button type="button" class="sec2" data-e="all">Скинути все</button>`;
+  } else if (q) { text = `За запитом «${esc(q)}» немає учасників. Спробуйте коротше слово, наприклад «юрист» замість «юриста».`; btns = `<button type="button" data-e="q">Очистити пошук</button>`; }
+  else { text = 'Жоден учасник не підходить під ці фільтри.'; btns = `<button type="button" data-e="f">Скинути фільтри</button>`; }
+  list.innerHTML = `<div class="empty"><div class="ic">${svg('search')}</div><h3>Нікого не знайдено</h3><p>${text}</p><div class="btns">${btns}</div></div>`;
+}
+$('#list').addEventListener('click', e => {
+  const b = e.target.closest('[data-e]'); if (!b) return;
+  const k = b.dataset.e;
+  if (k === 'dropf' || k === 'f' || k === 'all') for (const s in sel) sel[s].clear();
+  if (k === 'q' || k === 'all') setQuery('');
+  afterFilter();
+});
+function setQuery(v){ query = v; $('#q').value = v; $('#search').classList.toggle('has', !!v); }
+
+/* ---------- active chips: one per section ---------- */
 function renderActive(){
   const n = selCount();
   $('#fbtn').classList.toggle('on', n > 0);
   $('#fbadge').textContent = n || '';
-  $('#fbtn').setAttribute('aria-label', n ? `Фільтри (${n})` : 'Фільтри');
-  const chips = [];
-  for (const s of SECTIONS) for (const v of sel[s.key]) chips.push(`<button class="ac pressable" type="button" data-k="${s.key}" data-v="${esc(v)}" aria-label="Прибрати фільтр ${esc(s.label ? s.label(v) : v)}">${esc(s.label ? s.label(v) : v)}<span class="x"><svg class="i" viewBox="0 0 24 24">${I.x}</svg></span></button>`);
-  $('#activeChips').innerHTML = chips.join('');
-  measure();
+  $('#fbtn').setAttribute('aria-label', n ? `Фільтри, увімкнено ${n}` : 'Фільтри');
+  const act = activeSections();
+  let html = act.map(s => { const vals = [...sel[s.key]].map(v => labelOf(s.key, v));
+    const shown = vals.length > 2 ? `${vals.slice(0, 2).join(', ')} +${vals.length - 2}` : vals.join(', ');
+    return `<span class="ac"><button class="lb" type="button" data-open="${s.key}" aria-label="${esc(s.title)}: ${esc(vals.join(', '))}. Змінити"><b>${esc(s.title)}:</b>${esc(shown)}</button>`
+      + `<button class="x" type="button" data-drop="${s.key}" aria-label="Прибрати фільтр «${esc(s.title)}»">${svg('x')}</button></span>`; }).join('');
+  if (act.length > 1) html += `<button class="ac all" type="button" data-drop="*">Скинути</button>`;
+  $('#activeChips').innerHTML = html;
 }
-$('#activeChips').addEventListener('click', e => { const b = e.target.closest('.ac'); if (!b) return; sel[b.dataset.k].delete(b.dataset.v); afterFilter(); });
+$('#activeChips').addEventListener('click', e => {
+  const o = e.target.closest('[data-open]'); if (o) { openSheet(o.dataset.open); return; }
+  const d = e.target.closest('[data-drop]'); if (!d) return;
+  if (d.dataset.drop === '*') for (const k in sel) sel[k].clear(); else sel[d.dataset.drop].clear();
+  afterFilter(); $('#fbtn').focus({ preventScroll: true });
+});
 
-/* ---------- filter sheet ---------- */
-function countFor(key, v){ const q = normQ(); return M.filter(m => passFilters(m, key) && passQuery(m, q) && (key === 'int' ? m.int.includes(v) : m[key] === v)).length; }
-function renderSheet(){
-  const body = $('#shBody');
-  const keepScroll = body.scrollTop;
-  body.innerHTML = SECTIONS.map(s => {
-    const n = sel[s.key].size;
-    const head = `<div class="fs-h"><h4>${s.title}</h4>${n ? `<button class="clr2" type="button" data-clear="${s.key}">Скинути (${n})</button>` : ''}</div>`;
-    if (s.kind === 'pk') return `<section class="fs">${head}<div class="pk">${s.opts.map(v =>
-      `<button class="pressable ${v}" type="button" data-k="${s.key}" data-v="${v}" aria-pressed="${sel[s.key].has(v)}"><span class="lvdot"></span><b>${s.label(v)}</b><small>${countFor(s.key, v)} учасн.</small></button>`).join('')}</div></section>`;
-    const f = fq[s.key].trim().toLocaleLowerCase('uk');
-    const opts = s.opts.filter(v => !f || v.toLocaleLowerCase('uk').includes(f));
-    return `<section class="fs">${head}`
-      + (s.opts.length > 6 ? `<label class="fsearch"><svg class="i" viewBox="0 0 24 24">${I.search}</svg><span class="sr-only">${s.search}</span><input data-fq="${s.key}" type="search" autocomplete="off" placeholder="${s.search}" value="${esc(fq[s.key])}"></label>` : '')
-      + `<div class="tags">${opts.length ? opts.map(v => { const c = countFor(s.key, v), on = sel[s.key].has(v);
-          return `<button class="tag pressable${!c && !on ? ' zero' : ''}" type="button" data-k="${s.key}" data-v="${esc(v)}" aria-pressed="${on}"><svg class="i" viewBox="0 0 24 24">${I.check}</svg>${esc(v)}<small>${c}</small></button>`; }).join('')
-        : `<span class="none">Нічого не знайдено</span>`}</div></section>`;
-  }).join('');
-  body.scrollTop = keepScroll;
-  const n = results().length;
-  $('#shGo').textContent = n ? `Показати ${n}` : 'Нікого не знайдено';
+/* ---------- filter sheet: order frozen at open, counts update in place ---------- */
+const fq = { ind:'', c:'', int:'' }, expanded = {};
+let order = {};
+function countFor(k, v){ const t = tokens(); return M.filter(m => passFilters(m, k) && score(m, t) < Infinity && ((k === 'ind' || k === 'int') ? m[k].includes(v) : m[k] === v)).length; }
+function freezeOrder(){
+  order = {};
+  for (const s of SECTIONS) {
+    const opts = s.all();
+    order[s.key] = s.fixed ? opts : opts.map(v => [v, countFor(s.key, v)]).sort((a, b) => b[1] - a[1] || coll.compare(a[0], b[0])).map(x => x[0]);
+  }
+}
+const plural = n => (n % 10 === 1 && n % 100 !== 11) ? 'учасник' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'учасники' : 'учасників';
+function tagHtml(k, v){
+  const c = countFor(k, v), on = sel[k].has(v);
+  return `<button class="tag pressable${c ? '' : ' zero'}" type="button" data-k="${k}" data-v="${esc(v)}" aria-pressed="${on}" aria-label="${esc(labelOf(k, v))}, ${c} ${plural(c)}">`
+    + svg('check') + (k === 'lv' ? `<span class="lv ${v}"><span class="lvdot"></span></span>` : '') + `<span>${esc(labelOf(k, v))}</span><span class="c" aria-hidden="true">${c}</span></button>`;
+}
+function tagsHtml(s){
+  const k = s.key, f = fold(fq[k] || '').trim();
+  let opts = order[k];
+  if (f) { opts = opts.filter(v => fold(v).includes(f)); return opts.length ? opts.map(v => tagHtml(k, v)).join('') : `<span class="none">Нічого не знайдено</span>`; }
+  if (s.fixed) return opts.map(v => tagHtml(k, v)).join('');
+  const live = opts.filter(v => countFor(k, v) > 0 || sel[k].has(v)), zero = opts.filter(v => !live.includes(v));
+  const LIMIT = 8;
+  let shown = live, rest = [];
+  if (!expanded[k] && live.length > LIMIT) { shown = live.slice(0, LIMIT); rest = live.slice(LIMIT); }
+  let html = shown.map(v => tagHtml(k, v)).join('');
+  if (rest.length) html += `<button class="more2" type="button" data-exp="${k}">Усі (${live.length})</button>`;
+  else if (zero.length && !expanded[k + ':0']) html += `<button class="more2" type="button" data-exp="${k}:0">Ще ${zero.length} без збігів</button>`;
+  else html += zero.map(v => tagHtml(k, v)).join('');
+  return html;
+}
+function buildSheet(){
+  freezeOrder();
+  $('#shBody').innerHTML = SECTIONS.map(s => `<section class="fs" id="fs-${s.key}" aria-labelledby="fsh-${s.key}">`
+    + `<div class="fs-h"><h4 id="fsh-${s.key}">${s.title}</h4><button class="clr2" type="button" data-clear="${s.key}" hidden></button></div>`
+    + (s.search && s.all().length > 8 ? `<label class="fsearch">${svg('search')}<span class="sr-only">${s.search}</span><input data-fq="${s.key}" type="search" autocomplete="off" placeholder="${s.search}"></label>` : '')
+    + `<div class="tags" id="tags-${s.key}"></div></section>`).join('');
+  SECTIONS.forEach(s => { const inp = $(`[data-fq="${s.key}"]`); if (inp) inp.value = fq[s.key] || ''; });
+  refreshSheet(true);
+}
+function refreshSheet(full){
+  for (const s of SECTIONS) {
+    const box = $(`#tags-${s.key}`);
+    if (full) box.innerHTML = tagsHtml(s);
+    else $$('.tag', box).forEach(b => { // update in place: no reorder under the finger, focus stays put
+      const k = b.dataset.k, v = b.dataset.v, c = countFor(k, v), on = sel[k].has(v);
+      b.setAttribute('aria-pressed', String(on)); b.classList.toggle('zero', !c);
+      b.querySelector('.c').textContent = c; b.setAttribute('aria-label', `${labelOf(k, v)}, ${c} ${plural(c)}`);
+    });
+    const n = sel[s.key].size, cb = $(`[data-clear="${s.key}"]`);
+    cb.hidden = !n; cb.textContent = `Скинути (${n})`;
+  }
+  const q = query.trim();
+  $('#shNote').hidden = !q; $('#shNote').textContent = q ? `З урахуванням пошуку «${q}»` : '';
+  const n = results().length, go = $('#shGo');
+  go.textContent = `Показати ${n}`; go.classList.toggle('zero', !n);
   $('#shReset').disabled = !selCount();
+  const hint = $('#shHint');
+  if (!n && selCount()) { // which single value, removed, gives the most people back
+    let best = null;
+    for (const k in sel) for (const v of [...sel[k]]) { sel[k].delete(v); const c = results().length; sel[k].add(v); if (c && (!best || c > best.c)) best = { k, v, c }; }
+    hint.hidden = !best;
+    if (best) hint.innerHTML = `Приберіть «${esc(labelOf(best.k, best.v))}» — знайдеться ${best.c}. <button type="button" data-k="${best.k}" data-v="${esc(best.v)}">Прибрати</button>`;
+  } else hint.hidden = true;
 }
 $('#shBody').addEventListener('click', e => {
+  const x = e.target.closest('[data-exp]'); if (x) { expanded[x.dataset.exp] = true; const k = x.dataset.exp.split(':')[0]; $(`#tags-${k}`).innerHTML = tagsHtml(SEC[k]); return; }
   const c = e.target.closest('[data-clear]'); if (c) { sel[c.dataset.clear].clear(); afterFilter(); return; }
-  const b = e.target.closest('[data-k]'); if (!b) return;
+  const b = e.target.closest('.tag'); if (!b) return;
   const set = sel[b.dataset.k], v = b.dataset.v;
   set.has(v) ? set.delete(v) : set.add(v);
+  haptic('impact');
   afterFilter();
 });
-$('#shBody').addEventListener('input', e => {
-  const k = e.target.dataset.fq; if (!k) return;
-  fq[k] = e.target.value;
-  const pos = e.target.selectionStart;
-  renderSheet();
-  const inp = $(`[data-fq="${k}"]`); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch {}
-});
-function afterFilter(){ shown = WINDOW; renderActive(); render(); if (sheetOpen) renderSheet(); }
+$('#shHint').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; sel[b.dataset.k].delete(b.dataset.v); afterFilter(); });
+$('#shBody').addEventListener('input', e => { const k = e.target.dataset.fq; if (!k) return; fq[k] = e.target.value; $(`#tags-${k}`).innerHTML = tagsHtml(SEC[k]); });
+function afterFilter(){ renderActive(); render(); if (sheetOpen) refreshSheet(false); }
 
 let sheetOpen = false, lastFocus = null;
-function openSheet(){ sheetOpen = true; lastFocus = document.activeElement; renderSheet(); root.classList.add('locked');
-  $('#sheet').classList.add('open'); $('#scrim').classList.add('open'); $('#sheet').setAttribute('aria-hidden','false'); setTimeout(() => $('#sheet').focus({ preventScroll:true }), 60); }
-function closeSheet(){ sheetOpen = false; root.classList.remove('locked');
-  $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); $('#sheet').setAttribute('aria-hidden','true'); lastFocus && lastFocus.focus && lastFocus.focus({ preventScroll:true }); }
-$('#fbtn').addEventListener('click', openSheet);
+function openSheet(section){
+  sheetOpen = true; lastFocus = document.activeElement; buildSheet(); root.classList.add('locked');
+  $('#sheet').classList.add('open'); $('#scrim').classList.add('open'); $('#sheet').setAttribute('aria-hidden','false');
+  $('#flow').inert = true; $('#idx').inert = true;
+  if (section) requestAnimationFrame(() => { const fs = $(`#fs-${section}`); fs && fs.scrollIntoView({ block:'start' }); });
+  setTimeout(() => $('#sheet').focus({ preventScroll:true }), 60);
+}
+function closeSheet(){
+  sheetOpen = false; root.classList.remove('locked');
+  $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); $('#sheet').setAttribute('aria-hidden','true');
+  $('#flow').inert = false; $('#idx').inert = false;
+  (lastFocus && document.contains(lastFocus) ? lastFocus : $('#fbtn')).focus({ preventScroll:true });
+}
+$('#fbtn').addEventListener('click', () => openSheet());
 $('#shX').addEventListener('click', closeSheet);
 $('#scrim').addEventListener('click', closeSheet);
 $('#shGo').addEventListener('click', closeSheet);
 $('#shReset').addEventListener('click', () => { for (const k in sel) sel[k].clear(); afterFilter(); });
-addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) closeSheet(); });
+addEventListener('keydown', e => {
+  if (!sheetOpen) return;
+  if (e.key === 'Escape') closeSheet();
+  if (e.key === 'Tab') { // focus stays inside the sheet
+    const f = $$('button:not([disabled]):not([hidden]), input', $('#sheet')).filter(n => n.offsetParent);
+    if (!f.length) return; const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
 
 /* ---------- search ---------- */
 const qi = $('#q');
-qi.addEventListener('input', () => { setQuery(qi.value); render(); });
-$('#clr').addEventListener('click', e => { e.preventDefault(); setQuery(''); render(); qi.focus(); });
-
-/* ---------- alphabet scrubber ---------- */
-const idx = $('#idx'), bubble = $('#bubble');
-function buildIndex(){
-  idx.hidden = present.size < 2;
-  $('#idxList').innerHTML = ALPHA.map(L => `<li class="${present.has(L) ? '' : 'off'}">${L}</li>`).join('');
-  fitIndex();
+let qt = 0;
+qi.addEventListener('input', () => { setQuery(qi.value); clearTimeout(qt); qt = setTimeout(() => { render(); jumpListTop(); }, 120); });
+qi.addEventListener('focus', () => syncIdx());
+qi.addEventListener('blur', () => setTimeout(syncIdx, 50));
+$('#sform').addEventListener('submit', e => { e.preventDefault(); qi.blur(); });
+$('#clr').addEventListener('click', () => { setQuery(''); render(); qi.focus(); });
+function jumpListTop(){ // results changed while deep in the list: start them right under the sticky tools
+  const top = $('#title').offsetTop + $('#title').offsetHeight;
+  if (scrollY > top) window.scrollTo(0, top);
 }
-function fitIndex(){ const h = idx.clientHeight - 8; idx.style.setProperty('--lh', Math.max(11, Math.min(17, Math.floor(h / ALPHA.length))) + 'px'); }
+
+/* ---------- haptics: Telegram's, when inside Telegram ---------- */
+function haptic(kind){
+  const h = window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback;
+  try { if (h) { kind === 'impact' ? h.impactOccurred('light') : h.selectionChanged(); } else if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(kind === 'impact' ? 6 : 3); } catch {}
+}
+
+/* ---------- alphabet strip ---------- */
+const idx = $('#idx'), bubble = $('#bubble');
+let lastCount = 0;
+function syncIdx(count){
+  if (count != null) lastCount = count;
+  const searching = tokens().length > 0, typing = document.activeElement === qi;
+  idx.hidden = searching || typing || lastCount <= 15 || present.size < 2;
+  if (!idx.hidden) buildIdx();
+}
+function buildIdx(){
+  const h = idx.clientHeight - 8, N = ALPHA.length, MIN = 14;
+  let items;
+  if (h / N >= MIN) items = ALPHA.map(L => [L, false]);
+  else { // iOS condensed index: letter • letter • …
+    let slots = Math.max(5, Math.floor(h / MIN)); if (slots % 2 === 0) slots--;
+    items = Array.from({ length: slots }, (_, i) => i % 2 ? ['•', true] : [ALPHA[Math.round(i * (N - 1) / (slots - 1))], false]);
+  }
+  idx.style.setProperty('--lh', Math.min(17, Math.floor(h / items.length)) + 'px');
+  $('#idxList').innerHTML = items.map(([t, d]) => `<li class="${d ? 'dot' : ''}">${t}</li>`).join('');
+}
 function targetFor(L){ // a letter with nobody jumps to the next letter that has people (iOS does the same)
-  let i = ALPHA.indexOf(L);
+  const i = ALPHA.indexOf(L);
   for (let j = i; j < ALPHA.length; j++) if (present.has(ALPHA[j])) return ALPHA[j];
   for (let j = i; j >= 0; j--) if (present.has(ALPHA[j])) return ALPHA[j];
   return null;
 }
-let cur = null;
+let curTarget = null;
 function scrubAt(y){
-  const ol = $('#idxList'), r = ol.getBoundingClientRect();
-  const i = Math.max(0, Math.min(ALPHA.length - 1, Math.floor((y - r.top - 4) / ((r.height - 8) / ALPHA.length))));
-  const L = ALPHA[i];
-  bubble.textContent = L; bubble.style.top = Math.max(r.top + 28, Math.min(r.bottom - 28, y)) + 'px'; bubble.classList.add('on');
-  if (L === cur) return; cur = L;
-  const T = targetFor(L); if (!T) return;
-  let sec = document.getElementById('sec-' + T);
-  if (!sec) {   // not loaded yet: grow the window up to the end of that letter (the app would fetch to that offset)
-    let last = -1; hitsNow.forEach((m, i) => { if (letterOf(m) === T) last = i; });
-    shown = Math.ceil((last + 1) / WINDOW) * WINDOW; render(); sec = document.getElementById('sec-' + T);
-    sec && sec.classList.add('in');
-  }
-  if (sec) window.scrollTo(0, sec.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(root).getPropertyValue('--safe-top')) + $('#tools').offsetHeight) + 1);
-  if (navigator.vibrate) try { navigator.vibrate(4); } catch {}
+  const r = $('#idxList').getBoundingClientRect();
+  const frac = Math.max(0, Math.min(.9999, (y - r.top - 4) / (r.height - 8)));
+  const L = ALPHA[Math.floor(frac * ALPHA.length)];
+  bubble.textContent = L; bubble.style.top = Math.max(r.top + 74, Math.min(r.bottom, y)) + 'px'; bubble.classList.add('on');
+  const T = targetFor(L); if (!T || T === curTarget) return;
+  curTarget = T;
+  const sec = document.getElementById('sec-' + (T === '#' ? 'hash' : T));
+  if (sec) window.scrollTo(0, sec.getBoundingClientRect().top + scrollY - (92 + $('#tools').offsetHeight) + 1);
+  haptic('selection');
 }
-idx.addEventListener('pointerdown', e => { e.preventDefault(); idx.setPointerCapture(e.pointerId); idx.classList.add('drag'); cur = null; scrubAt(e.clientY); });
+idx.addEventListener('pointerdown', e => { e.preventDefault(); if (document.activeElement === qi) qi.blur(); idx.setPointerCapture(e.pointerId); idx.classList.add('drag'); curTarget = null; scrubAt(e.clientY); });
 idx.addEventListener('pointermove', e => { if (idx.hasPointerCapture(e.pointerId)) scrubAt(e.clientY); });
-const endScrub = () => { idx.classList.remove('drag'); bubble.classList.remove('on'); cur = null; };
+const endScrub = () => { idx.classList.remove('drag'); bubble.classList.remove('on'); curTarget = null; };
 idx.addEventListener('pointerup', endScrub); idx.addEventListener('pointercancel', endScrub); idx.addEventListener('lostpointercapture', endScrub);
 
-/* reveal once */
-let io;
-function armReveal(){
-  if (!('IntersectionObserver' in window)) { $$('.rv').forEach(n => n.classList.add('in')); return; }
-  io && io.disconnect();
-  io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -6% 0px' });
-  $$('.rv:not(.in)').forEach(n => io.observe(n));
-}
+/* ---------- press: buttons scale, rows only tint (after 80ms, cancelled on move/scroll) ---------- */
+let pressT = 0, pressEl = null, pressY = 0;
+document.addEventListener('pointerdown', e => {
+  const p = e.target.closest('.pressable'); if (p) { p.classList.add('is-pressed'); const up = () => { p.classList.remove('is-pressed'); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); }; addEventListener('pointerup', up); addEventListener('pointercancel', up); }
+  const r = e.target.closest('.m'); if (!r) return;
+  pressEl = r; pressY = e.clientY; clearTimeout(pressT); pressT = setTimeout(() => pressEl && pressEl.classList.add('hl-press'), 80);
+});
+const cancelPress = () => { clearTimeout(pressT); if (pressEl) pressEl.classList.remove('hl-press'); pressEl = null; };
+document.addEventListener('pointermove', e => { if (pressEl && Math.abs(e.clientY - pressY) > 6) cancelPress(); });
+document.addEventListener('pointerup', () => setTimeout(cancelPress, 120));
+document.addEventListener('pointercancel', cancelPress);
 
-/* press feedback */
-document.addEventListener('pointerdown', e => { const p = e.target.closest('.pressable'); if (!p) return; p.classList.add('is-pressed');
-  const up = () => { p.classList.remove('is-pressed'); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); };
-  addEventListener('pointerup', up); addEventListener('pointercancel', up); });
-
-/* glass header: one class toggle when the large title scrolls under the pills (no per-frame style writes) */
-function measure(){ root.style.setProperty('--tools-h', $('#tools').offsetHeight + 'px'); root.style.setProperty('--title-h', ($('#title').offsetHeight + 10) + 'px'); fitIndex(); }
-let stuck = null, tick = false;
-function onScroll(){ if (tick) return; tick = true; requestAnimationFrame(() => { tick = false;
-  const s = scrollY > $('#title').offsetTop + $('#title').offsetHeight - parseFloat(getComputedStyle(root).getPropertyValue('--safe-top'));
-  if (s !== stuck) { stuck = s; root.classList.toggle('stuck', s); } }); }
-addEventListener('scroll', onScroll, { passive: true });
-addEventListener('resize', measure);
+/* ---------- glass header: one class toggle via an observer on the title (no per-frame reads) ---------- */
+function measure(){ root.style.setProperty('--tools-h', $('#tools').offsetHeight + 'px'); root.style.setProperty('--title-h', ($('#title').offsetHeight + 8) + 'px'); }
+new IntersectionObserver(([e]) => root.classList.toggle('stuck', !e.isIntersecting), { rootMargin: '-100px 0px 0px 0px' }).observe($('#title'));
+let lastY = 0;
+addEventListener('scroll', () => { if (pressEl) cancelPress(); if (document.activeElement === qi && Math.abs(scrollY - lastY) > 24) qi.blur(); lastY = scrollY; }, { passive: true });
+let rz = 0; addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { measure(); syncIdx(); }); });
 
 addEventListener('message', e => { const d = e.data; if (!d || d.type !== 'pv-state') return;
   if (d.theme) state.theme = pick(d.theme, ['light','dark','system'], state.theme);
   if (d.motion) state.motion = pick(d.motion, ['full','reduced','auto'], state.motion);
-  applyTheme(); applyMotion(); });
+  if (d.headline) state.headline = pick(d.headline, ['set','empty','draft'], state.headline);
+  applyTheme(); applyMotion(); render(); });
 mqRed.addEventListener && mqRed.addEventListener('change', applyMotion);
 
-applyTheme(); applyMotion(); renderActive(); render(); onScroll();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+applyTheme(); applyMotion(); measure(); renderActive(); render();
+setTimeout(() => $('#list').classList.remove('first'), 400);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); syncIdx(); });
 })();
 </script>
 </body>

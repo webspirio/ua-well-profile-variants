@@ -212,16 +212,38 @@ html[data-photo="none"] .hero-tap{display:none}
 .hc .act .lbl{font-size:11.5px}
 
 /* headline «Чим займаюся»: one short LinkedIn-style line that says who this person is */
-.headline{margin:6px 0 0;font-size:16px;font-weight:560;line-height:1.25;letter-spacing:-.01em;color:#fff;
+.headline{margin:6px 0 0;font-size:16px;font-weight:560;line-height:1.25;letter-spacing:-.01em;color:#fff;overflow-wrap:anywhere;max-width:100%;min-width:0;
   text-shadow:0 1px 2px rgba(0,0,0,.3);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transform-origin:0 100%}
 .hc .headline + .headline-add + .meta,.hc .headline + .meta{margin-top:4px}
 .mono .headline{text-align:center;margin-top:6px}
 .headline-add{display:none;margin-top:8px;height:30px;padding:0 12px 0 9px;border-radius:999px;align-items:center;gap:5px;
-  font-size:13px;font-weight:600;color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);border:0;
+  font-size:13px;font-weight:600;color:#fff;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);border:0;text-shadow:0 1px 2px rgba(0,0,0,.3);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 .headline-add svg.i{width:15px;height:15px;stroke-width:2.25}
 .mono .headline-add{margin:10px auto 0}
 html[data-headline="empty"] [data-mode="own"] .headline{display:none}
+.hl-draft{display:none;margin-top:8px;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;font-weight:550;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.hl-draft button{height:30px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:650;color:#fff;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.hl-draft button.ok{color:#1C1C1C;background:var(--brand);box-shadow:none;text-shadow:none}
+.mono .hl-draft{justify-content:center}
+html[data-headline="draft"] [data-mode="own"] .hl-draft{display:flex}
+html[data-headline="draft"] [data-mode="own"] .headline{opacity:.82}
+.hs-field{position:relative;margin-top:6px}
+.hs-field input{width:100%;height:48px;padding:0 64px 0 14px;border-radius:12px;border:0;outline:none;font:inherit;font-size:16px;color:var(--text);background:var(--tile)}
+.hs-field input:focus{box-shadow:0 0 0 2px var(--ink)}
+.hs-field .cnt{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12.5px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.hs-hint{margin:8px 4px 0;font-size:13.5px;line-height:1.35;color:var(--muted)}
+.hs-cap{margin:18px 4px 6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.hs-prev{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:var(--surface);box-shadow:var(--card-shadow)}
+.hs-prev img{width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:50% 25%;flex:none}
+.hs-prev .t{min-width:0;display:flex;flex-direction:column;gap:1px}
+.hs-prev .n{font-size:16px;font-weight:620}
+.hs-prev .h{font-size:14.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hs-prev .h.ph{color:var(--tertiary);font-style:italic}
+.hs-prev .c{font-size:13px;color:var(--tertiary)}
+.hs-save{margin-top:18px;width:100%;height:50px;border-radius:14px;font-size:16px;font-weight:650;color:#1C1C1C;background:var(--brand)}
+.hs-save:disabled{opacity:.45}
 html[data-headline="empty"] [data-mode="own"] .headline-add{display:inline-flex}
 
 /* glass (Apple "clear" variant — only on the poster + chrome, never on content cards) */
@@ -569,7 +591,7 @@ html.reduced .viewer img{transform:none}
         <span class="cap glass" data-fg="badges" data-scale=".96" data-admin-only><svg class="i" data-i="shield"></svg>Адмін</span>
       </div>
       <h1 class="name" id="name" data-fg="name" data-scale=".92"><span>Олена</span><span>Коваленко</span></h1>
-      <p class="headline" data-fg="headline">Маркетологиня, засновниця агенції Kova</p><button class="headline-add pressable" data-fg="headline" data-act="headline"><svg class="i" data-i="plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Додайте, чим ви займаєтесь</button>
+      <p class="headline" data-fg="headline">Маркетологиня, засновниця агенції Kova</p><button class="headline-add pressable" data-fg="headline" type="button" data-act="headline"><svg class="i" data-i="plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Додайте, чим ви займаєтесь</button><div class="hl-draft" data-fg="headline"><span>Ми запропонували за вашою анкетою</span><button class="ok pressable" type="button" data-act="hl-ok">Підтвердити</button><button class="pressable" type="button" data-act="hl-edit">Змінити</button></div>
       <div class="meta" id="meta" data-fg="meta"><span>@olena_kov</span><span aria-hidden="true">·</span><span>учасник з бер. <span class="yr">2025</span></span></div>
       <div class="actions" id="actions" role="group" aria-label="Дії з профілем">
         <button class="act pressable" data-act="edit"><span class="circ glass illum" data-fg="actions" data-anchor="actions" data-scale=".9"><svg class="i" data-i="pencil"></svg></span><span class="lbl" data-fg="actions" data-anchor="actions">Редагувати</span></button>
@@ -583,7 +605,7 @@ html.reduced .viewer img{transform:none}
     <div class="mono" data-mode="own">
       <div class="mono-disc" data-fg="mdisc" data-scale=".9" aria-hidden="true">ОК</div>
       <h1 class="name" data-fg="mname" data-scale=".94"><span>Олена</span> <span>Коваленко</span></h1>
-      <p class="headline" data-fg="mheadline">Маркетологиня, засновниця агенції Kova</p><button class="headline-add pressable" data-fg="mheadline" data-act="headline"><svg class="i" data-i="plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Додайте, чим ви займаєтесь</button>
+      <p class="headline" data-fg="mheadline">Маркетологиня, засновниця агенції Kova</p><button class="headline-add pressable" data-fg="mheadline" type="button" data-act="headline"><svg class="i" data-i="plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Додайте, чим ви займаєтесь</button><div class="hl-draft" data-fg="mheadline"><span>Ми запропонували за вашою анкетою</span><button class="ok pressable" type="button" data-act="hl-ok">Підтвердити</button><button class="pressable" type="button" data-act="hl-edit">Змінити</button></div>
       <div class="meta" data-fg="mmeta"><span>@olena_kov</span><span aria-hidden="true">·</span><span>учасник з бер. <span class="yr">2025</span></span></div>
       <div class="badges">
         <span class="cap glass" data-fg="mbadges" data-scale=".96"><span class="dot" aria-hidden="true"></span>Бізнес</span>
@@ -990,6 +1012,19 @@ html.reduced .viewer img{transform:none}
   </div>
 </div>
 
+<div class="scrim" id="hScrim"></div>
+<div class="sheet fixed-col" id="hsheet" role="dialog" aria-modal="true" aria-labelledby="hs-h" aria-hidden="true">
+  <div class="grab" aria-hidden="true"></div>
+  <div class="sheet-head"><h3 id="hs-h">Чим ви займаєтесь</h3><button class="icon-btn sheet-x" id="hsClose" type="button" aria-label="Закрити"><svg class="i" data-i="x"></svg></button></div>
+  <label class="hs-field"><span class="sr-only">Чим ви займаєтесь, до 60 символів</span>
+    <input id="hsInput" type="text" maxlength="60" autocomplete="off" enterkeyhint="done" placeholder="напр. Податкова консультантка для українських ФОП" aria-describedby="hsHint hsCnt">
+    <span class="cnt" id="hsCnt" aria-live="polite">0/60</span></label>
+  <p class="hs-hint" id="hsHint">Одним рядком: ваш фах і для кого. Так вас бачать у списку учасників. Без посилань і телефонів.</p>
+  <p class="hs-cap" aria-hidden="true">Так ви виглядатимете у списку</p>
+  <div class="hs-prev" aria-hidden="true"><img src="assets/portrait-3x4.jpg" alt=""><span class="t"><span class="n">Олена Коваленко</span><span class="h" id="hsPrev"></span><span class="c">Штутгарт · Бізнес</span></span></div>
+  <button class="hs-save pressable" id="hsSave" type="button">Зберегти</button>
+</div>
+
 <!-- ===== photo viewer ===== -->
 <div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Фото профілю" aria-hidden="true">
   <img alt="Фото профілю Олени Коваленко" id="viewerImg">
@@ -1084,7 +1119,7 @@ const state = {
   admin: P.get('admin') !== '0',
   motion: pick(P.get('motion'), ['full','reduced'], 'auto'),
   view: pick(P.get('view'), ['own','other'], 'own'),
-  headline: pick(P.get('headline'), ['set','empty'], 'set'),   // own view: filled «Чим займаюся» or its empty prompt
+  headline: pick(P.get('headline'), ['set','empty','draft'], 'set'),   // own view: filled «Чим займаюся» or its empty prompt
   viewAs: 'admin',   // in-page «Як адміністратор / Як учасник» (only meaningful for view=other + admin)
   lang: 'uk'
 };
@@ -1171,7 +1206,10 @@ function applyAll(animateTheme){ root.dataset.headline = state.headline; applyMo
 function computeH(){
   const W = Math.min(innerWidth, 430);
   const p = photos()[state.photo];
-  if (!p) return state.view === 'other' ? 488 : 420;   // other: monogram carries the Написати/Подзвонити row too
+  if (!p) {   // other: monogram carries the Написати/Подзвонити row too; grow when the content is taller
+    const base = state.view === 'other' ? 488 : 420, mono = $(`.mono[data-mode="${mode()}"]`);
+    return Math.max(base, mono && mono.offsetHeight ? Math.ceil(mono.offsetHeight + T + 16 + 44) : 0);
+  }
   const r = Math.min(1.5, Math.max(1.35, p.r));
   return Math.round(Math.min(W * r, 0.72 * innerHeight));
 }
@@ -1339,6 +1377,30 @@ scrimEl.addEventListener('click', closeSheet);
 $('#sheetClose').addEventListener('click', closeSheet);
 $$('.opt', sheet).forEach(o => o.addEventListener('click', () => { state.theme = o.dataset.v; applyTheme(true); setTimeout(closeSheet, 180); }));
 
+/* ---------- «Чим ви займаєтесь» editor (prototype of the profile-edit field) ---------- */
+const hsheet = $('#hsheet'), hScrim = $('#hScrim'), hsInput = $('#hsInput');
+const ownHeadline = () => ($('[data-mode="own"] .headline') || {}).textContent || '';
+const cleanHeadline = v => v.normalize('NFC').replace(/[\u0000-\u001f\u200b\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim();
+function syncHs(){
+  const v = cleanHeadline(hsInput.value), n = Array.from(hsInput.value).length;
+  $('#hsCnt').textContent = n + '/60';
+  const prev = $('#hsPrev'); prev.textContent = v || 'Тут буде ваш рядок'; prev.classList.toggle('ph', !v);
+  $('#hsSave').textContent = v ? 'Зберегти' : (ownHeadline() && state.headline !== 'empty' ? 'Прибрати рядок' : 'Зберегти');
+  $('#hsSave').disabled = !v && !(ownHeadline() && state.headline !== 'empty');
+}
+function openHeadline(v){ lastFocus = document.activeElement; hsInput.value = v; syncHs(); hsheet.classList.add('open'); hScrim.classList.add('open'); hsheet.setAttribute('aria-hidden','false'); setTimeout(() => hsInput.focus({ preventScroll: true }), 80); }
+function closeHeadline(){ hsheet.classList.remove('open'); hScrim.classList.remove('open'); hsheet.setAttribute('aria-hidden','true'); hsInput.blur(); lastFocus && document.contains(lastFocus) && lastFocus.focus({ preventScroll: true }); }
+function setHeadline(v){
+  $$('[data-mode="own"] .headline').forEach(h => { if (v) h.textContent = v; });
+  state.headline = v ? 'set' : 'empty'; root.dataset.headline = state.headline; layout();
+}
+hsInput.addEventListener('input', syncHs);
+hsInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#hsSave').click(); } });
+$('#hsSave').addEventListener('click', () => { const v = cleanHeadline(hsInput.value); setHeadline(v); closeHeadline(); toast(v ? 'Збережено' : 'Рядок прибрано'); });
+$('#hsClose').addEventListener('click', closeHeadline);
+hScrim.addEventListener('click', closeHeadline);
+addEventListener('keydown', e => { if (e.key === 'Escape' && hsheet.classList.contains('open')) closeHeadline(); });
+
 /* ---------- viewer ---------- */
 const viewer = $('#viewer');
 function openViewer(){ if (!photos()[state.photo]) return; lastFocus = document.activeElement; viewer.classList.add('open'); viewer.setAttribute('aria-hidden','false'); setTimeout(() => $('#viewerClose').focus(), 50); }
@@ -1353,7 +1415,10 @@ document.addEventListener('click', e => {
   const a = e.target.closest('[data-act]'); if (!a) return;
   const act = a.dataset.act;
   if (a.tagName === 'A') e.preventDefault();
-  if (act === 'theme') openSheet();
+  if (act === 'headline') openHeadline('');
+  else if (act === 'hl-edit') openHeadline(ownHeadline());
+  else if (act === 'hl-ok') { setHeadline(ownHeadline()); toast('Збережено. Так вас бачать у списку учасників'); }
+  else if (act === 'theme') openSheet();
   else if (act === 'settings') { const t = docTop($('#settings')) - T - 12; window.scrollTo({ top: t, behavior: S.reduced ? 'auto' : 'smooth' }); }
   else if (act === 'edit') toast('Відкриється «Редагувати профіль» (/profile/edit)');
   else if (act === 'photo') toast('Відкриється вибір фото');
@@ -1432,7 +1497,7 @@ addEventListener('message', e => {
   const prevView = state.view, prevAdmin = state.admin;
   if (d.view) state.view = pick(d.view, ['own','other'], state.view);
   const prevHeadline = state.headline;
-  if (d.headline) state.headline = pick(d.headline, ['set','empty'], state.headline);
+  if (d.headline) state.headline = pick(d.headline, ['set','empty','draft'], state.headline);
   const viewChanged = state.view !== prevView, adminChanged = state.admin !== prevAdmin;
   if (viewChanged || adminChanged) state.viewAs = 'admin';   // outside switch resets the in-page toggle
   applyAll(true);

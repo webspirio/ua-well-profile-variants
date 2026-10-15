@@ -114,7 +114,8 @@
       <button type="button" data-v="other" aria-pressed="false">Інший учасник</button></div></div>
     <div class="ctl"><span>Чим займаюся</span><div class="seg" data-key="headline">
       <button type="button" data-v="set" aria-pressed="true">Заповнено</button>
-      <button type="button" data-v="empty" aria-pressed="false">Порожньо</button></div></div>
+      <button type="button" data-v="empty" aria-pressed="false">Порожньо</button>
+      <button type="button" data-v="draft" aria-pressed="false">Чернетка</button></div></div>
     <div class="ctl"><span>Тема</span><div class="seg" data-key="theme">
       <button type="button" data-v="system" aria-pressed="true">Система</button>
       <button type="button" data-v="light" aria-pressed="false">Світла</button>
@@ -212,22 +213,23 @@
       <div class="phone"><iframe title="Members directory prototype" data-src="members.html"></iframe></div>
       <div class="meta">
         <h2><span class="k">M</span>Who is who, at a glance</h2>
-        <p>Every row now says what the person does. The new «Чим займаюся» headline (one line, up to 60 characters, like LinkedIn's) is the row's main line, under the name. City and level sit below it in small grey text. Members without a headline get a two-line row with no gap.</p>
+        <p>Every row says what the person does. The «Чим займаюся» headline (one line, up to 60 characters, like LinkedIn's) is the row's main line, under the name, cut with "…" if it's longer. City and package sit below it. Members without a headline show their first industry instead, in a lighter colour; that's display only and is never saved as their headline.</p>
         <div class="label">What's in it</div>
         <ul>
-          <li>Large «Учасники 24» title. Search and the «Фільтри» button stick under the Telegram pills, and a glass bar with a small title fades in once the big title has gone.</li>
-          <li>Sorted and grouped by <b>first name</b>: Роман Білик is under Р. The letter headers stick while you scroll.</li>
-          <li>An alphabet strip down the right edge, like iPhone Contacts. Press or drag a finger along it and the list jumps to that letter. A letter with nobody jumps to the next one that has people.</li>
-          <li>Search matches the name <b>and</b> the headline, and marks the matched part. Try «марк» or «юрист».</li>
-          <li>One «Фільтри» button, as in the app today, opens the full filter sheet: Пакет, Місто, Інтереси, Сфера діяльності. You can pick several in each. It applies live, so the list behind the sheet is already filtered: any of the picks inside a section, all sections together. Each option shows how many members it would leave. The footer has «Скинути» and «Показати N».</li>
-          <li>Active filters show as removable chips under the search, and the button shows how many there are.</li>
-          <li>«Показати ще» opens the next batch, and there is an empty state for no matches. Tapping a row opens another member's profile in variant B.</li>
+          <li>Realistic demo data: the club's real cities (Штутгарт, Мюнхен, Аугсбург, Ульм, Фрідріхсгафен) and the app's real industry and interest labels. One member has no city, two have no photo, one has a Latin name.</li>
+          <li>A «Ви» card on top shows your own row exactly as others see it. With «Чим займаюся → Порожньо» it asks you to add yours; with «Чернетка» it shows the line suggested from your questionnaire.</li>
+          <li>One continuous list, sorted and grouped by <b>first name</b>. Letter headers stick while you scroll. Names outside the Ukrainian alphabet go under «#» at the end.</li>
+          <li>Search («Ім'я або професія») matches every word against the name, the headline and the industry. If only the industry matched, the row shows that industry. While searching, the list is one flat ranked list with no letters.</li>
+          <li>Only search and the «Фільтри» button stick at the top. Active filters show below as one chip per section, «Місто: Мюнхен, Ульм ✕», and scroll away with the list. Tap a chip to open the sheet at that section.</li>
+          <li>The filter sheet: Сфера діяльності, Місто, Інтереси, Пакет. Each option shows how many members it leaves. Options with nobody fold under «Ще N без збігів», and long sections show the top 8 + «Усі». The order is fixed while the sheet is open, so chips don't jump under your finger. With 0 results the button says «Показати 0» and a hint offers the one filter to drop.</li>
+          <li>Empty results explain why: a search blocked by filters offers «Шукати серед усіх (N)».</li>
+          <li>The A–Я strip on the right, like iPhone Contacts: it shows only for long lists and hides while you search or type. It shrinks to «А • В • …» on short screens. The letter bubble sits away from your thumb, and inside Telegram each letter gives a light tap.</li>
         </ul>
         <div class="label">For the app</div>
         <ul>
-          <li>The headline is a new profile field. It needs a column, an edit-form input, and room in the directory API, which today returns only name, photo, city and level.</li>
+          <li>The headline is a new profile field. It needs a column, an edit-form input, and room in the directory API, which today returns only name, photo, city and level. On the profile, «Додайте, чим ви займаєтесь» and «Змінити» open a one-line editor with a counter and a live preview of the list row.</li>
           <li>The real search would also need to cover the headline.</li>
-          <li>Sorting by first name is a change on the server (it sorts by last name today). The alphabet strip needs each letter's position in the full list, because the app loads members 100 at a time.</li>
+          <li>Sorting by first name is a change on the server (it sorts by last name today). The strip, letters and counts assume the whole directory loads in one request; at about 92 active members that's around 30 KB.</li>
           <li>Portraits in the list are randomuser.me placeholders. Two members are left without a photo on purpose to show the initials.</li>
         </ul>
         <a class="open" href="members.html" target="_blank" rel="noopener">Open full screen ↗</a>
