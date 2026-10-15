@@ -1,11 +1,12 @@
-# UA WELL — profile redesign variants
+# UA WELL — варіанти редизайну профілю
 
-Three interactive prototypes for the redesigned profile pages of the UA WELL Telegram Mini App: your own profile («Мій профіль», `/profile`) and another member's profile (`/u/:id`).
+Інтерактивні прототипи нових сторінок Telegram Mini App UA WELL: власний профіль («Мій профіль», `/profile`), профіль іншого учасника (`/u/:id`) і список учасників (`/members`).
 
-- **A · Telegram-native** — `variant-a.html`
-- **B · Contact Poster** — `variant-b.html`
-- **C · Editorial** — `variant-c.html`
+- **A · Як у Telegram** — `variant-a.html`
+- **B · Постер контакту** — `variant-b.html`
+- **C · Журнальний** — `variant-c.html`
+- **Список учасників** (у стилі варіанта B) — `members.html`
 
-`index.html` shows all three side by side with shared controls: profile (own / another member), viewer (admin / member), theme, photo ratio and motion.
-Each variant also takes the same state as URL params, e.g. `variant-b.html?view=other&admin=0&photo=3x4&theme=dark&motion=full`.
-Design exploration only, not production code. The people and photos are stock material (Unsplash), not real members.
+`index.html` показує всі прототипи поруч зі спільними перемикачами: профіль (мій / іншого учасника), хто дивиться (адмін / учасник), рядок «Чим займаюся» (заповнено / порожньо / чернетка), тема, пропорції фото й анімація.
+Кожен прототип приймає той самий стан у параметрах URL, наприклад `variant-b.html?view=other&admin=0&photo=3x4&theme=dark&motion=full&headline=draft`.
+Це лише дизайн-дослідження, а не робочий код. Люди й фото — стокові матеріали (Unsplash, randomuser.me), а не справжні учасники.
