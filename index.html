@@ -215,17 +215,20 @@
         <p>Every row now says what the person does. The new «Чим займаюся» headline (one line, up to 60 characters, like LinkedIn's) is the row's main line, under the name. City and level sit below it in small grey text. Members without a headline get a two-line row with no gap.</p>
         <div class="label">What's in it</div>
         <ul>
-          <li>Large «Учасники 24» title. Search and filter chips stick under the Telegram pills, and a glass bar with a small title fades in once the big title has gone.</li>
+          <li>Large «Учасники 24» title. Search and the «Фільтри» button stick under the Telegram pills, and a glass bar with a small title fades in once the big title has gone.</li>
+          <li>Sorted and grouped by <b>first name</b>: Роман Білик is under Р. The letter headers stick while you scroll.</li>
+          <li>An alphabet strip down the right edge, like iPhone Contacts. Press or drag a finger along it and the list jumps to that letter. A letter with nobody jumps to the next one that has people.</li>
           <li>Search matches the name <b>and</b> the headline, and marks the matched part. Try «марк» or «юрист».</li>
-          <li>Filter chips: Місто, Рівень, Галузь, Інтереси. In this prototype each one toggles a single demo value.</li>
-          <li>Letter sections (А, Б, В…) stick while you scroll. The real list is already sorted by last name.</li>
-          <li>«Показати ще» opens the next batch, and there is an empty state for a search with no matches.</li>
-          <li>Tapping a row opens another member's profile in variant B.</li>
+          <li>One «Фільтри» button, as in the app today, opens the full filter sheet: Пакет, Місто, Інтереси, Сфера діяльності. You can pick several in each. It applies live, so the list behind the sheet is already filtered: any of the picks inside a section, all sections together. Each option shows how many members it would leave. The footer has «Скинути» and «Показати N».</li>
+          <li>Active filters show as removable chips under the search, and the button shows how many there are.</li>
+          <li>«Показати ще» opens the next batch, and there is an empty state for no matches. Tapping a row opens another member's profile in variant B.</li>
         </ul>
         <div class="label">For the app</div>
         <ul>
           <li>The headline is a new profile field. It needs a column, an edit-form input, and room in the directory API, which today returns only name, photo, city and level.</li>
           <li>The real search would also need to cover the headline.</li>
+          <li>Sorting by first name is a change on the server (it sorts by last name today). The alphabet strip needs each letter's position in the full list, because the app loads members 100 at a time.</li>
+          <li>Portraits in the list are randomuser.me placeholders. Two members are left without a photo on purpose to show the initials.</li>
         </ul>
         <a class="open" href="members.html" target="_blank" rel="noopener">Open full screen ↗</a>
       </div>

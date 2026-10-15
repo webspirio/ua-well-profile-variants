@@ -7,14 +7,19 @@
 
   LAYOUT (390x844, Telegram fullscreen, safe top T = 92)
     large title «Учасники 24» in the flow, under the Telegram pills
-    tools (search + filter chips) stick at T; a glass bar fills 0..T+tools once the title has scrolled away,
-      and a small centred «Учасники» fades in (class toggle, one transition; nothing runs per frame)
-    letter headers (А, Б, В…) stick under the tools; sort = last name with the uk collation (matches the API)
-    row: 52px photo / initials · name 16/600 · headline 14.5 text colour (the row's main line) · city · level 13 tertiary
+    tools (search + «Фільтри» button, then removable active-filter chips) stick at T; a glass bar fills 0..T+tools
+      once the title has scrolled away and a small centred «Учасники» fades in (one class toggle, nothing per frame)
+    SORT + SECTIONS by FIRST name (uk collation): «Роман Білик» lives under Р
+    letter headers stick under the tools
+    row: 52px photo / initials · name 16/620 · headline 14.5 (the row's main line) · city · level 13 tertiary
       no headline -> two lines, no blank line
     «Показати ще» reveals the next window (the real API pages by 100)
+  ALPHABET SCRUBBER (iPhone Contacts): the full Ukrainian alphabet down the right edge; press or drag a finger along
+    it and the list jumps to that letter (a letter with nobody jumps to the next one that has people). A bubble shows
+    the letter under the finger. Pointer capture, instant scroll, only re-scrolls when the letter changes.
+  FILTERS: one «Фільтри» button (count badge) opens the full filter sheet — Пакет · Місто · Інтереси · Сфера діяльності,
+    multi-select, live-apply like the app (OR inside a section, AND across sections). Footer: «Скинути» + «Показати N».
   SEARCH matches name AND headline; the matched part is marked.
-  FILTER CHIPS: Місто / Рівень / Галузь / Інтереси — each toggles one demo value in this prototype.
   ROW TAP -> variant-b.html?view=other (the other-member profile).
 -->
 <html lang="uk" data-theme="system">
@@ -109,9 +114,10 @@ html.theme-anim body, html.theme-anim .card, html.theme-anim .panel, html.theme-
 
 .col{position:relative;width:100%;max-width:430px;margin:0 auto}
 .fixed-col{position:fixed;left:0;right:0;margin:0 auto;width:100%;max-width:430px}
+html.locked,html.locked body{overflow:hidden}
 
 /* ---------- top glass (behind the Telegram pills) ---------- */
-#top{top:0;z-index:20;pointer-events:none;height:calc(var(--safe-top) + var(--tools-h,104px))}
+#top{top:0;z-index:20;pointer-events:none;height:calc(var(--safe-top) + var(--tools-h,60px))}
 #top .glass-bar{position:absolute;inset:0;background:color-mix(in oklab,var(--bg) 80%,transparent);
   -webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 .5px 0 var(--line);
   opacity:0;transition:opacity .22s ease}
@@ -128,30 +134,37 @@ main{padding:calc(var(--safe-top) + 4px) 0 calc(var(--tabbar-h) + var(--safe-bot
 .lt-title .n{font:500 17px/1 var(--mono);color:var(--tertiary);letter-spacing:0;font-variant-numeric:tabular-nums}
 
 .tools{position:sticky;top:var(--safe-top);z-index:21;padding:6px 16px 10px}
-.search{position:relative;display:flex;align-items:center;gap:8px;height:40px;padding:0 6px 0 12px;border-radius:12px;background:var(--tile);color:var(--tertiary)}
+.trow{display:flex;gap:8px}
+.search{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 6px 0 12px;border-radius:12px;background:var(--tile);color:var(--tertiary)}
 .search svg.i{width:18px;height:18px}
 .search input{flex:1;min-width:0;height:100%;border:0;background:none;outline:none;font:inherit;font-size:16px;color:var(--text);padding:0}
 .search input::placeholder{color:var(--tertiary)}
+.search input::-webkit-search-cancel-button{display:none}
 .search .clr{width:32px;height:32px;border-radius:50%;display:none;place-items:center;color:var(--tertiary)}
 .search .clr svg.i{width:16px;height:16px;stroke-width:2.25}
 .search.has .clr{display:grid}
 .search:focus-within{box-shadow:0 0 0 2px var(--ink)}
-.chips{display:flex;gap:8px;margin:10px -16px 0;padding:0 16px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 12px 0 14px;border-radius:999px;
-  font-size:14px;font-weight:550;color:var(--text);background:var(--surface);box-shadow:var(--card-shadow);transition:background-color .2s ease,color .2s ease,transform .25s var(--ease)}
-.chip svg.i{width:15px;height:15px;stroke-width:2.25;color:var(--tertiary);transition:transform .25s var(--ease)}
-.chip[aria-pressed="true"]{background:var(--brand);color:#1C1C1C;box-shadow:0 6px 16px -8px rgba(255,137,18,.7)}
-.chip[aria-pressed="true"] svg.i{color:#1C1C1C}
-.chip .v{font-weight:650}
+.fbtn{position:relative;flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--tile);color:var(--text);transition:background-color .2s ease,transform .25s var(--ease)}
+.fbtn svg.i{width:20px;height:20px}
+.fbtn.on{background:var(--brand);color:#1C1C1C}
+.fbtn .badge{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;display:none;place-items:center;
+  font:700 11.5px/1 var(--font);font-variant-numeric:tabular-nums;color:var(--bg);background:var(--text);box-shadow:0 0 0 2px var(--bg)}
+.fbtn.on .badge{display:grid}
+.active{display:flex;gap:6px;margin:10px -16px 0;padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.active::-webkit-scrollbar{display:none}
+.active:empty{display:none}
+.ac{flex:none;display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 6px 0 11px;border-radius:999px;font-size:13.5px;font-weight:550;
+  color:var(--ink);background:var(--tile-ink)}
+.ac svg.i{width:14px;height:14px;stroke-width:2.4}
+.ac .x{width:20px;height:20px;border-radius:50%;display:grid;place-items:center}
 html:not(.reduced) .pressable.is-pressed{transform:scale(.97)}
 
-.sec{margin-top:6px}
-.lt{position:sticky;top:calc(var(--safe-top) + var(--tools-h,104px));z-index:10;margin:0;padding:10px 24px 6px;
+.sec{margin-top:6px;scroll-margin-top:calc(var(--safe-top) + var(--tools-h,60px))}
+.lt{position:sticky;top:calc(var(--safe-top) + var(--tools-h,60px));z-index:10;margin:0;padding:10px 24px 6px;
   font:650 13px/1 var(--mono);letter-spacing:.06em;color:var(--ink);background:linear-gradient(var(--bg) 70%,transparent)}
-.card{margin:0 16px;background:var(--surface);border-radius:16px;box-shadow:var(--card-shadow);overflow:hidden}
-.m{position:relative;display:flex;align-items:center;gap:14px;padding:12px 16px;min-height:76px;width:100%;text-align:left;color:inherit;transition:background-color .2s ease}
-.m + .m::before{content:"";position:absolute;top:0;left:82px;right:0;height:1px;background:var(--hairline);transform:scaleY(.5);transform-origin:top}
+.card{margin:0 30px 0 16px;background:var(--surface);border-radius:16px;box-shadow:var(--card-shadow);overflow:hidden}
+.m{position:relative;display:flex;align-items:center;gap:14px;padding:12px 14px;min-height:76px;width:100%;text-align:left;color:inherit;transition:background-color .2s ease}
+.m + .m::before{content:"";position:absolute;top:0;left:80px;right:0;height:1px;background:var(--hairline);transform:scaleY(.5);transform-origin:top}
 .m.is-pressed{background:var(--press)}
 .m:focus-visible{outline-offset:-3px;border-radius:16px}
 .av{width:52px;height:52px;border-radius:50%;flex:none;object-fit:cover;object-position:50% 25%;background:var(--tile)}
@@ -162,15 +175,13 @@ html:not(.reduced) .pressable.is-pressed{transform:scale(.97)}
 .hl{font-size:14.5px;line-height:1.3;color:var(--text);opacity:.86;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mt{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tertiary);white-space:nowrap;overflow:hidden}
 .mt .lv{display:inline-flex;align-items:center;gap:5px}
-.mt .lv::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--lvc,var(--tertiary))}
-.mt .lv.business{--lvc:var(--brand)}
-.mt .lv.standard{--lvc:#A8A29E}
-.mt .lv.start{--lvc:#D6D3D1}
+.lvdot{width:6px;height:6px;border-radius:50%;flex:none;background:var(--lvc,var(--tertiary))}
+.business{--lvc:var(--brand)} .standard{--lvc:#A8A29E} .start{--lvc:#D6D3D1}
 mark{background:rgba(255,137,18,.28);color:inherit;border-radius:3px;padding:0 1px}
 
-.more{display:flex;justify-content:center;margin:20px 16px 0}
+.more{display:flex;justify-content:center;margin:20px 30px 0 16px}
 .more button{height:44px;padding:0 20px;border-radius:999px;font-size:15px;font-weight:600;color:var(--ink);background:var(--surface);box-shadow:var(--card-shadow)}
-.foot{margin:16px 0 0;text-align:center;font-size:13px;color:var(--tertiary)}
+.foot{margin:16px 30px 0 16px;text-align:center;font-size:13px;color:var(--tertiary)}
 .empty{margin:56px 32px 0;text-align:center;color:var(--muted)}
 .empty .ic{width:56px;height:56px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:var(--tile);color:var(--tertiary)}
 .empty h3{margin:0 0 6px;font-size:17px;font-weight:650;color:var(--text)}
@@ -180,6 +191,69 @@ mark{background:rgba(255,137,18,.28);color:inherit;border-radius:3px;padding:0 1
 /* section reveal (once, opacity + 8px) */
 html:not(.reduced) .rv{opacity:0;transform:translateY(8px);transition:opacity .36s ease,transform .42s var(--ease)}
 html:not(.reduced) .rv.in{opacity:1;transform:none}
+
+/* ---------- alphabet scrubber (iPhone Contacts) ---------- */
+#idx{position:fixed;z-index:25;right:max(0px,calc((100vw - 430px) / 2));width:28px;
+  top:calc(var(--safe-top) + var(--title-h,58px) + var(--tools-h,60px) + 4px);bottom:calc(var(--tabbar-h) + var(--safe-bottom) + 10px);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;touch-action:none;user-select:none;-webkit-user-select:none}
+#idx[hidden]{display:none}
+#idx ol{list-style:none;margin:0;padding:4px 0;display:flex;flex-direction:column;align-items:center;border-radius:14px;transition:background-color .2s ease}
+#idx li{font:650 10.5px/1 var(--font);color:var(--ink);height:var(--lh,15px);display:grid;place-items:center;width:28px}
+#idx li.off{color:var(--tertiary);opacity:.45}
+#idx.drag ol{background:var(--tile)}
+#bubble{position:fixed;z-index:26;right:calc(max(0px,(100vw - 430px) / 2) + 40px);width:56px;height:56px;margin-top:-28px;border-radius:50%;
+  display:grid;place-items:center;font-size:26px;font-weight:700;color:#1C1C1C;background:var(--brand);
+  box-shadow:0 10px 24px -8px rgba(255,137,18,.7);opacity:0;transform:scale(.6);transition:opacity .15s ease,transform .2s var(--ease);pointer-events:none}
+#bubble.on{opacity:1;transform:none}
+
+/* ---------- filter sheet ---------- */
+.scrim{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:opacity .3s ease}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;margin:0 auto;width:100%;max-width:430px;bottom:0;z-index:71;max-height:calc(100% - var(--safe-top) - 6px);display:flex;flex-direction:column;
+  background:var(--sheet-bg);border-radius:32px 32px 0 0;transform:translateY(105%);transition:transform .42s var(--ease);box-shadow:0 -12px 40px rgba(0,0,0,.2)}
+.sheet.open{transform:none}
+.sheet:focus{outline:none}
+html.reduced .sheet{transform:none;opacity:0;pointer-events:none;transition:opacity .15s ease}
+html.reduced .sheet.open{opacity:1;pointer-events:auto}
+.sh-top{flex:none;padding:8px 16px 4px}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.sh-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+.sh-head h3{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em}
+.sh-x{background:var(--tile);border-radius:50%;width:32px;height:32px;display:grid;place-items:center;position:relative}
+.sh-x::after{content:"";position:absolute;inset:-6px}
+.sh-x svg.i{width:16px;height:16px;stroke-width:2.25}
+.sh-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px 16px 16px}
+.fs{margin-top:22px}
+.fs:first-child{margin-top:8px}
+.fs-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 4px 10px}
+.fs-h h4{margin:0;font-size:15px;font-weight:650;letter-spacing:-.005em}
+.fs-h .cnt{font:600 12.5px/1 var(--mono);color:var(--ink)}
+.fs-h .clr2{font-size:13.5px;font-weight:600;color:var(--ink);padding:4px 0}
+.pk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pk button{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border-radius:14px;background:var(--tile);text-align:left;
+  transition:background-color .2s ease,box-shadow .2s ease,transform .25s var(--ease)}
+.pk .lvdot{width:10px;height:10px}
+.pk b{font-size:15px;font-weight:650}
+.pk small{font-size:12px;color:var(--tertiary);font-variant-numeric:tabular-nums}
+.pk button[aria-pressed="true"]{background:var(--tile-ink);box-shadow:inset 0 0 0 1.5px var(--brand)}
+.fsearch{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:12px;background:var(--tile);color:var(--tertiary);margin-bottom:10px}
+.fsearch svg.i{width:16px;height:16px}
+.fsearch input{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;font-size:16px;color:var(--text)}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:999px;font-size:14.5px;font-weight:550;color:var(--text);
+  background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);transition:background-color .2s ease,box-shadow .2s ease,color .2s ease,transform .25s var(--ease)}
+.tag small{font-size:12px;color:var(--tertiary);font-variant-numeric:tabular-nums}
+.tag svg.i{width:15px;height:15px;stroke-width:2.6;display:none}
+.tag[aria-pressed="true"]{background:var(--brand);color:#1C1C1C;box-shadow:none}
+.tag[aria-pressed="true"] small{color:rgba(28,28,28,.6)}
+.tag[aria-pressed="true"] svg.i{display:block}
+.tag.zero{opacity:.45}
+.tags .none{font-size:14px;color:var(--tertiary);padding:6px 4px}
+.sh-foot{flex:none;display:flex;gap:10px;padding:12px 16px calc(var(--safe-bottom) + 8px);box-shadow:0 -.5px 0 var(--line)}
+.sh-foot button{height:50px;border-radius:14px;font-size:16px;font-weight:650}
+.sh-foot .rs{flex:none;padding:0 18px;color:var(--text);background:var(--tile)}
+.sh-foot .rs:disabled{opacity:.4}
+.sh-foot .go{flex:1;color:#1C1C1C;background:var(--brand);box-shadow:0 8px 20px -10px rgba(255,137,18,.8);font-variant-numeric:tabular-nums}
 
 /* ---------- tab bar ---------- */
 .tabbar{bottom:0;z-index:40;height:calc(var(--tabbar-h) + var(--safe-bottom))}
@@ -220,21 +294,22 @@ html:not(.reduced) .rv.in{opacity:1;transform:none}
 <main class="col" id="flow">
   <h1 class="lt-title" id="title">Учасники <span class="n" id="count"></span></h1>
   <div class="tools" id="tools">
-    <label class="search" id="search">
-      <svg class="i" data-i="search"></svg>
-      <span class="sr-only">Пошук учасників</span>
-      <input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Ім'я або чим займається">
-      <button class="clr" id="clr" type="button" aria-label="Очистити пошук"><svg class="i" data-i="x"></svg></button>
-    </label>
-    <div class="chips" role="group" aria-label="Фільтри">
-      <button class="chip pressable" data-f="city" aria-pressed="false"><span class="k">Місто</span><svg class="i" data-i="down"></svg></button>
-      <button class="chip pressable" data-f="level" aria-pressed="false"><span class="k">Рівень</span><svg class="i" data-i="down"></svg></button>
-      <button class="chip pressable" data-f="industry" aria-pressed="false"><span class="k">Галузь</span><svg class="i" data-i="down"></svg></button>
-      <button class="chip pressable" data-f="interest" aria-pressed="false"><span class="k">Інтереси</span><svg class="i" data-i="down"></svg></button>
+    <div class="trow">
+      <label class="search" id="search">
+        <svg class="i" data-i="search"></svg>
+        <span class="sr-only">Пошук учасників</span>
+        <input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Ім'я або чим займається">
+        <button class="clr" id="clr" type="button" aria-label="Очистити пошук"><svg class="i" data-i="x"></svg></button>
+      </label>
+      <button class="fbtn pressable" id="fbtn" type="button" aria-haspopup="dialog" aria-controls="sheet" aria-label="Фільтри"><svg class="i" data-i="sliders"></svg><span class="badge" id="fbadge"></span></button>
     </div>
+    <div class="active" id="activeChips" aria-label="Увімкнені фільтри"></div>
   </div>
   <div id="list" aria-live="polite"></div>
 </main>
+
+<nav id="idx" aria-label="Перейти до літери"><ol id="idxList"></ol></nav>
+<div id="bubble" aria-hidden="true"></div>
 
 <nav class="tabbar fixed-col" aria-label="Основна навігація">
   <div class="tabbar-glass"></div>
@@ -246,6 +321,17 @@ html:not(.reduced) .rv.in{opacity:1;transform:none}
     <a class="tab pressable" href="variant-b.html"><img class="av" src="assets/portrait-3x4.jpg" alt=""><span>Профіль</span></a>
   </div>
 </nav>
+
+<!-- ===== filter sheet ===== -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sh-h" aria-hidden="true">
+  <div class="sh-top">
+    <div class="grab" aria-hidden="true"></div>
+    <div class="sh-head"><h3 id="sh-h">Фільтри</h3><button class="sh-x pressable" id="shX" type="button" aria-label="Закрити"><svg class="i" data-i="x"></svg></button></div>
+  </div>
+  <div class="sh-body" id="shBody"></div>
+  <div class="sh-foot"><button class="rs pressable" id="shReset" type="button">Скинути</button><button class="go pressable" id="shGo" type="button"></button></div>
+</div>
 
 <div class="sys fixed-col" aria-hidden="true" style="top:0;height:92px">
 <div class="sb fixed-col" id="sb">
@@ -305,8 +391,9 @@ const I = {
   history:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'
 };
 I.search = '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>';
-I.down = '<path d="m6 9 6 6 6-6"/>';
-document.querySelectorAll('svg[data-i]').forEach(s => { s.setAttribute('viewBox','0 0 24 24'); s.setAttribute('aria-hidden','true'); s.innerHTML = I[s.dataset.i] || ''; });
+I.sliders = '<path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2"/><path d="M4 17h2"/><path d="M10 17h10"/><circle cx="8" cy="17" r="2"/>';
+const paint = (r = document) => r.querySelectorAll('svg[data-i]').forEach(s => { s.setAttribute('viewBox','0 0 24 24'); s.setAttribute('aria-hidden','true'); s.innerHTML = I[s.dataset.i] || ''; });
+paint();
 
 const $ = (q, r = document) => r.querySelector(q), $$ = (q, r = document) => [...r.querySelectorAll(q)];
 const root = document.documentElement;
@@ -319,45 +406,59 @@ function applyMotion(){ root.classList.toggle('reduced', state.motion === 'reduc
 
 /* ---------- demo data (level labels: Старт / Стандарт / Бізнес) ---------- */
 const LV = { start:'Старт', standard:'Стандарт', business:'Бізнес' };
+const A = 'assets/m/';
 const M = [
-  ['Олена','Коваленко','Маркетологиня, засновниця агенції Kova','Франкфурт','business','Маркетинг','Нетворкінг','assets/portrait-3x4.jpg'],
-  ['Андрій','Мельник','Інженер-програміст у BMW','Мюнхен','standard','IT','Спорт','assets/other-3x4.jpg'],
-  ['Давид','Кім','Фотограф, знімає весілля та бізнес-портрети','Берлін','standard','Медіа','Мистецтво','assets/alt-2x3.jpg'],
-  ['Ірина','Бондаренко','Податкова консультантка для українських ФОП у Німеччині','Франкфурт','business','Фінанси','Нетворкінг'],
-  ['Тарас','Шевчук','Шеф-кухар, ресторан «Борщ & Co»','Гамбург','start','Гастрономія','Кулінарія'],
-  ['Марія','Ткаченко','','Кельн','start','Освіта','Мистецтво'],
-  ['Олег','Савченко','Архітектор житлових будинків','Штутгарт','standard','Будівництво','Спорт'],
-  ['Наталія','Лисенко','HR-директорка, Siemens Healthineers','Мюнхен','business','HR','Нетворкінг'],
-  ['Богдан','Гнатюк','Юрист з міграційного права','Берлін','business','Право','Подорожі'],
-  ['Софія','Іваненко','UX-дизайнерка мобільних застосунків','Франкфурт','standard','IT','Мистецтво'],
-  ['Юрій','Остапчук','','Гамбург','start','Логістика','Спорт'],
-  ['Катерина','Захарченко','Лікарка-стоматологиня, власна практика','Кельн','business','Медицина','Подорожі'],
-  ['Віктор','Руденко','Фінансовий радник, інвестиції та пенсія','Франкфурт','business','Фінанси','Нетворкінг'],
-  ['Ганна','Яковенко','Викладачка німецької для дорослих','Штутгарт','start','Освіта','Кулінарія'],
-  ['Максим','Поліщук','Засновник логістичної компанії Polyshchuk Cargo','Мюнхен','business','Логістика','Подорожі'],
-  ['Олександра','Дорошенко','Психологиня, працює з підлітками','Берлін','standard','Медицина','Мистецтво'],
-  ['Євген','Кравчук','Data-аналітик у Deutsche Bank','Франкфурт','standard','IT','Спорт'],
-  ['Аліна','Мороз','','Гамбург','start','Медіа','Подорожі'],
-  ['Роман','Білик','Ріелтор, комерційна нерухомість','Кельн','standard','Нерухомість','Нетворкінг'],
-  ['Людмила','Гончар','Організаторка подій і конференцій','Франкфурт','business','Маркетинг','Нетворкінг'],
-  ['Петро','Вовк','Електрик, свій бізнес з монтажу сонячних панелей','Штутгарт','standard','Будівництво','Спорт'],
-  ['Діана','Єрмоленко','SMM-менеджерка для локальних брендів','Берлін','start','Маркетинг','Мистецтво'],
-  ['Ігор','Зінченко','Кардіолог, Universitätsklinikum Köln','Кельн','business','Медицина','Подорожі'],
-  ['Христина','Ющенко','Бухгалтерка для малого бізнесу','Мюнхен','standard','Фінанси','Кулінарія'],
+  ['Олена','Коваленко','Маркетологиня, засновниця агенції Kova','Франкфурт','business','Маркетинг',['Нетворкінг','Бізнес-сніданки'],'assets/portrait-3x4.jpg'],
+  ['Андрій','Мельник','Інженер-програміст у BMW','Мюнхен','standard','IT',['Спорт','Подорожі'],'assets/other-3x4.jpg'],
+  ['Давид','Кім','Фотограф, знімає весілля та бізнес-портрети','Берлін','standard','Медіа',['Мистецтво','Подорожі'],'assets/alt-2x3.jpg'],
+  ['Ірина','Бондаренко','Податкова консультантка для українських ФОП у Німеччині','Франкфурт','business','Фінанси',['Нетворкінг'],A+'women-44.jpg'],
+  ['Тарас','Шевчук','Шеф-кухар, ресторан «Борщ & Co»','Гамбург','start','Гастрономія',['Кулінарія','Волонтерство'],A+'men-32.jpg'],
+  ['Марія','Ткаченко','','Кельн','start','Освіта',['Мистецтво','Танці']],
+  ['Олег','Савченко','Архітектор житлових будинків','Штутгарт','standard','Будівництво',['Спорт'],A+'men-46.jpg'],
+  ['Наталія','Лисенко','HR-директорка, Siemens Healthineers','Мюнхен','business','HR',['Нетворкінг','Бізнес-сніданки'],A+'women-68.jpg'],
+  ['Богдан','Гнатюк','Юрист з міграційного права','Берлін','business','Право',['Подорожі'],A+'men-75.jpg'],
+  ['Софія','Іваненко','UX-дизайнерка мобільних застосунків','Франкфурт','standard','IT',['Мистецтво','Танці'],A+'women-12.jpg'],
+  ['Юрій','Остапчук','','Гамбург','start','Логістика',['Спорт']],
+  ['Катерина','Захарченко','Лікарка-стоматологиня, власна практика','Кельн','business','Медицина',['Подорожі','Волонтерство'],A+'women-65.jpg'],
+  ['Віктор','Руденко','Фінансовий радник, інвестиції та пенсія','Франкфурт','business','Фінанси',['Нетворкінг','Бізнес-сніданки'],A+'men-52.jpg'],
+  ['Ганна','Яковенко','Викладачка німецької для дорослих','Штутгарт','start','Освіта',['Кулінарія'],A+'women-32.jpg'],
+  ['Максим','Поліщук','Засновник логістичної компанії Polyshchuk Cargo','Мюнхен','business','Логістика',['Подорожі','Бізнес-сніданки'],A+'men-86.jpg'],
+  ['Олександра','Дорошенко','Психологиня, працює з підлітками','Берлін','standard','Медицина',['Мистецтво','Волонтерство'],A+'women-79.jpg'],
+  ['Євген','Кравчук','Data-аналітик у Deutsche Bank','Франкфурт','standard','IT',['Спорт'],A+'men-22.jpg'],
+  ['Аліна','Мороз','Контент-креаторка, тревел-блог','Гамбург','start','Медіа',['Подорожі','Танці'],A+'women-90.jpg'],
+  ['Роман','Білик','Ріелтор, комерційна нерухомість','Кельн','standard','Нерухомість',['Нетворкінг'],A+'men-41.jpg'],
+  ['Людмила','Гончар','Організаторка подій і конференцій','Франкфурт','business','Маркетинг',['Нетворкінг','Танці'],A+'women-26.jpg'],
+  ['Петро','Вовк','Електрик, свій бізнес з монтажу сонячних панелей','Штутгарт','standard','Будівництво',['Спорт','Волонтерство'],A+'men-64.jpg'],
+  ['Діана','Єрмоленко','SMM-менеджерка для локальних брендів','Берлін','start','Маркетинг',['Мистецтво'],A+'women-57.jpg'],
+  ['Ігор','Зінченко','Кардіолог, Universitätsklinikum Köln','Кельн','business','Медицина',['Подорожі'],A+'men-11.jpg'],
+  ['Христина','Ющенко','Бухгалтерка для малого бізнесу','Мюнхен','standard','Фінанси',['Кулінарія','Бізнес-сніданки'],A+'women-21.jpg'],
 ].map(([f,l,h,c,lv,ind,int,ph], i) => ({ id:i, f, l, h, c, lv, ind, int, ph }));
 const coll = new Intl.Collator('uk');
-M.sort((a, b) => coll.compare(a.l, b.l) || coll.compare(a.f, b.f));
+// sort by FIRST name, then last name
+M.sort((a, b) => coll.compare(a.f, b.f) || coll.compare(a.l, b.l));
+const ALPHA = 'АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЮЯ'.split('');
+const letterOf = m => m.f[0].toLocaleUpperCase('uk');
 
-/* demo filter values — one per chip */
-const FILTERS = { city:['c','Франкфурт'], level:['lv','business'], industry:['ind','Маркетинг'], interest:['int','Нетворкінг'] };
-const FLABEL = { level: v => LV[v] };
-const active = {};
+/* ---------- filters (multi-select; OR inside a section, AND across) ---------- */
+const uniq = arr => [...new Set(arr)].sort(coll.compare);
+const SECTIONS = [
+  { key:'lv',  title:'Пакет',            opts: ['start','standard','business'], label: v => LV[v], kind:'pk' },
+  { key:'c',   title:'Місто',            opts: uniq(M.map(m => m.c)),        search:'Пошук міста…' },
+  { key:'int', title:'Інтереси',         opts: uniq(M.flatMap(m => m.int)),  search:'Пошук інтересу…' },
+  { key:'ind', title:'Сфера діяльності', opts: uniq(M.map(m => m.ind)),      search:'Пошук сфери…' },
+];
+const sel = { lv:new Set(), c:new Set(), int:new Set(), ind:new Set() };
+const fq = { c:'', int:'', ind:'' };
+const has = (m, key, vals) => key === 'int' ? m.int.some(v => vals.has(v)) : vals.has(m[key]);
+function passFilters(m, skip){ for (const k in sel) if (k !== skip && sel[k].size && !has(m, k, sel[k])) return false; return true; }
+const selCount = () => Object.values(sel).reduce((n, s) => n + s.size, 0);
+
 const WINDOW = 14;
 let shown = WINDOW, query = '';
 
 const PAL = [['#FFB257','#C2600A'],['#F59E8B','#B4432B'],['#9DB4A0','#4D6B52'],['#A9B7D1','#4B5D82'],['#D8B4A0','#8A5A44'],['#C7B3E0','#6E5594']];
 const hash = s => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
-const esc = s => s.replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[ch]);
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[ch]);
 function mark(text, q){
   if (!q) return esc(text);
   const i = text.toLocaleLowerCase('uk').indexOf(q); if (i < 0) return esc(text);
@@ -369,53 +470,148 @@ function avatar(m){
   return `<span class="av ini" style="--a1:${a1};--a2:${a2}" aria-hidden="true">${m.f[0]}${m.l[0]}</span>`;
 }
 function row(m, q){
-  const name = `${m.f} ${m.l}`;
   return `<a class="m pressable" href="variant-b.html?view=other&admin=0">${avatar(m)}<span class="tx">`
-    + `<span class="nm">${mark(name, q)}</span>`
+    + `<span class="nm">${mark(`${m.f} ${m.l}`, q)}</span>`
     + (m.h ? `<span class="hl">${mark(m.h, q)}</span>` : '')
-    + `<span class="mt"><span>${esc(m.c)}</span><span aria-hidden="true">·</span><span class="lv ${m.lv}">${LV[m.lv]}</span></span>`
+    + `<span class="mt"><span>${esc(m.c)}</span><span aria-hidden="true">·</span><span class="lv ${m.lv}"><span class="lvdot"></span>${LV[m.lv]}</span></span>`
     + `</span></a>`;
 }
-function matches(m, q){
-  for (const [k, [field, val]] of Object.entries(FILTERS)) if (active[k] && m[field] !== val) return false;
-  if (!q) return true;
-  return `${m.f} ${m.l}`.toLocaleLowerCase('uk').includes(q) || m.h.toLocaleLowerCase('uk').includes(q);
-}
+const normQ = () => query.trim().toLocaleLowerCase('uk');
+const passQuery = (m, q) => !q || `${m.f} ${m.l}`.toLocaleLowerCase('uk').includes(q) || m.h.toLocaleLowerCase('uk').includes(q);
+const results = () => { const q = normQ(); return M.filter(m => passFilters(m) && passQuery(m, q)); };
+
+let present = new Set(), hitsNow = [];
 function render(){
-  const q = query.trim().toLocaleLowerCase('uk');
-  const hits = M.filter(m => matches(m, q));
+  const q = normQ();
+  const hits = results(); hitsNow = hits;
   $('#count').textContent = hits.length;
   const list = $('#list');
   if (!hits.length) {
     list.innerHTML = `<div class="empty"><div class="ic"><svg class="i" viewBox="0 0 24 24">${I.search}</svg></div>`
       + `<h3>Нікого не знайдено</h3><p>${q ? `За запитом «${esc(query.trim())}» немає учасників.` : 'Жоден учасник не підходить під ці фільтри.'}</p>`
       + `<button id="reset" type="button">Скинути пошук і фільтри</button></div>`;
-    $('#reset').onclick = () => { query = ''; $('#q').value = ''; $('#search').classList.remove('has'); for (const k in active) delete active[k]; syncChips(); shown = WINDOW; render(); };
-    return;
+    $('#reset').onclick = () => { setQuery(''); clearAll(); };
+    present = new Set(); buildIndex(); return;
   }
   const page = hits.slice(0, shown);
   const groups = new Map();
-  page.forEach(m => { const L = m.l[0].toLocaleUpperCase('uk'); if (!groups.has(L)) groups.set(L, []); groups.get(L).push(m); });
+  page.forEach(m => { const L = letterOf(m); if (!groups.has(L)) groups.set(L, []); groups.get(L).push(m); });
   let html = '';
-  for (const [L, ms] of groups) html += `<section class="sec rv" aria-label="${L}"><h2 class="lt">${L}</h2><div class="card">${ms.map(m => row(m, q)).join('')}</div></section>`;
+  for (const [L, ms] of groups) html += `<section class="sec rv" id="sec-${L}" aria-label="${L}"><h2 class="lt">${L}</h2><div class="card">${ms.map(m => row(m, q)).join('')}</div></section>`;
   if (hits.length > shown) html += `<div class="more"><button id="more" class="pressable" type="button">Показати ще</button></div>`;
   html += `<p class="foot">Показано ${page.length} з ${hits.length}</p>`;
   list.innerHTML = html;
   const more = $('#more'); if (more) more.onclick = () => { shown += WINDOW; render(); };
-  armReveal();
+  present = new Set(hits.map(letterOf));   // every letter in the result, not only the loaded window
+  buildIndex(); armReveal();
 }
-function syncChips(){
-  $$('.chip').forEach(c => {
-    const k = c.dataset.f, on = !!active[k];
-    c.setAttribute('aria-pressed', String(on));
-    const v = FILTERS[k][1];
-    c.querySelector('.k').innerHTML = on ? `<span class="v">${esc(FLABEL[k] ? FLABEL[k](v) : v)}</span>` : c.dataset.label;
-  });
+function setQuery(v){ query = v; $('#q').value = v; $('#search').classList.toggle('has', !!v); shown = WINDOW; }
+function clearAll(){ for (const k in sel) sel[k].clear(); for (const k in fq) fq[k] = ''; afterFilter(); }
+
+/* active-filter chips + badge */
+function renderActive(){
+  const n = selCount();
+  $('#fbtn').classList.toggle('on', n > 0);
+  $('#fbadge').textContent = n || '';
+  $('#fbtn').setAttribute('aria-label', n ? `Фільтри (${n})` : 'Фільтри');
+  const chips = [];
+  for (const s of SECTIONS) for (const v of sel[s.key]) chips.push(`<button class="ac pressable" type="button" data-k="${s.key}" data-v="${esc(v)}" aria-label="Прибрати фільтр ${esc(s.label ? s.label(v) : v)}">${esc(s.label ? s.label(v) : v)}<span class="x"><svg class="i" viewBox="0 0 24 24">${I.x}</svg></span></button>`);
+  $('#activeChips').innerHTML = chips.join('');
+  measure();
 }
-$$('.chip').forEach(c => { c.dataset.label = c.querySelector('.k').textContent; c.addEventListener('click', () => { active[c.dataset.f] = !active[c.dataset.f]; syncChips(); shown = WINDOW; render(); }); });
-const q = $('#q');
-q.addEventListener('input', () => { query = q.value; $('#search').classList.toggle('has', !!q.value); shown = WINDOW; render(); });
-$('#clr').addEventListener('click', e => { e.preventDefault(); q.value = ''; query = ''; $('#search').classList.remove('has'); render(); q.focus(); });
+$('#activeChips').addEventListener('click', e => { const b = e.target.closest('.ac'); if (!b) return; sel[b.dataset.k].delete(b.dataset.v); afterFilter(); });
+
+/* ---------- filter sheet ---------- */
+function countFor(key, v){ const q = normQ(); return M.filter(m => passFilters(m, key) && passQuery(m, q) && (key === 'int' ? m.int.includes(v) : m[key] === v)).length; }
+function renderSheet(){
+  const body = $('#shBody');
+  const keepScroll = body.scrollTop;
+  body.innerHTML = SECTIONS.map(s => {
+    const n = sel[s.key].size;
+    const head = `<div class="fs-h"><h4>${s.title}</h4>${n ? `<button class="clr2" type="button" data-clear="${s.key}">Скинути (${n})</button>` : ''}</div>`;
+    if (s.kind === 'pk') return `<section class="fs">${head}<div class="pk">${s.opts.map(v =>
+      `<button class="pressable ${v}" type="button" data-k="${s.key}" data-v="${v}" aria-pressed="${sel[s.key].has(v)}"><span class="lvdot"></span><b>${s.label(v)}</b><small>${countFor(s.key, v)} учасн.</small></button>`).join('')}</div></section>`;
+    const f = fq[s.key].trim().toLocaleLowerCase('uk');
+    const opts = s.opts.filter(v => !f || v.toLocaleLowerCase('uk').includes(f));
+    return `<section class="fs">${head}`
+      + (s.opts.length > 6 ? `<label class="fsearch"><svg class="i" viewBox="0 0 24 24">${I.search}</svg><span class="sr-only">${s.search}</span><input data-fq="${s.key}" type="search" autocomplete="off" placeholder="${s.search}" value="${esc(fq[s.key])}"></label>` : '')
+      + `<div class="tags">${opts.length ? opts.map(v => { const c = countFor(s.key, v), on = sel[s.key].has(v);
+          return `<button class="tag pressable${!c && !on ? ' zero' : ''}" type="button" data-k="${s.key}" data-v="${esc(v)}" aria-pressed="${on}"><svg class="i" viewBox="0 0 24 24">${I.check}</svg>${esc(v)}<small>${c}</small></button>`; }).join('')
+        : `<span class="none">Нічого не знайдено</span>`}</div></section>`;
+  }).join('');
+  body.scrollTop = keepScroll;
+  const n = results().length;
+  $('#shGo').textContent = n ? `Показати ${n}` : 'Нікого не знайдено';
+  $('#shReset').disabled = !selCount();
+}
+$('#shBody').addEventListener('click', e => {
+  const c = e.target.closest('[data-clear]'); if (c) { sel[c.dataset.clear].clear(); afterFilter(); return; }
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  const set = sel[b.dataset.k], v = b.dataset.v;
+  set.has(v) ? set.delete(v) : set.add(v);
+  afterFilter();
+});
+$('#shBody').addEventListener('input', e => {
+  const k = e.target.dataset.fq; if (!k) return;
+  fq[k] = e.target.value;
+  const pos = e.target.selectionStart;
+  renderSheet();
+  const inp = $(`[data-fq="${k}"]`); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch {}
+});
+function afterFilter(){ shown = WINDOW; renderActive(); render(); if (sheetOpen) renderSheet(); }
+
+let sheetOpen = false, lastFocus = null;
+function openSheet(){ sheetOpen = true; lastFocus = document.activeElement; renderSheet(); root.classList.add('locked');
+  $('#sheet').classList.add('open'); $('#scrim').classList.add('open'); $('#sheet').setAttribute('aria-hidden','false'); setTimeout(() => $('#sheet').focus({ preventScroll:true }), 60); }
+function closeSheet(){ sheetOpen = false; root.classList.remove('locked');
+  $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); $('#sheet').setAttribute('aria-hidden','true'); lastFocus && lastFocus.focus && lastFocus.focus({ preventScroll:true }); }
+$('#fbtn').addEventListener('click', openSheet);
+$('#shX').addEventListener('click', closeSheet);
+$('#scrim').addEventListener('click', closeSheet);
+$('#shGo').addEventListener('click', closeSheet);
+$('#shReset').addEventListener('click', () => { for (const k in sel) sel[k].clear(); afterFilter(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) closeSheet(); });
+
+/* ---------- search ---------- */
+const qi = $('#q');
+qi.addEventListener('input', () => { setQuery(qi.value); render(); });
+$('#clr').addEventListener('click', e => { e.preventDefault(); setQuery(''); render(); qi.focus(); });
+
+/* ---------- alphabet scrubber ---------- */
+const idx = $('#idx'), bubble = $('#bubble');
+function buildIndex(){
+  idx.hidden = present.size < 2;
+  $('#idxList').innerHTML = ALPHA.map(L => `<li class="${present.has(L) ? '' : 'off'}">${L}</li>`).join('');
+  fitIndex();
+}
+function fitIndex(){ const h = idx.clientHeight - 8; idx.style.setProperty('--lh', Math.max(11, Math.min(17, Math.floor(h / ALPHA.length))) + 'px'); }
+function targetFor(L){ // a letter with nobody jumps to the next letter that has people (iOS does the same)
+  let i = ALPHA.indexOf(L);
+  for (let j = i; j < ALPHA.length; j++) if (present.has(ALPHA[j])) return ALPHA[j];
+  for (let j = i; j >= 0; j--) if (present.has(ALPHA[j])) return ALPHA[j];
+  return null;
+}
+let cur = null;
+function scrubAt(y){
+  const ol = $('#idxList'), r = ol.getBoundingClientRect();
+  const i = Math.max(0, Math.min(ALPHA.length - 1, Math.floor((y - r.top - 4) / ((r.height - 8) / ALPHA.length))));
+  const L = ALPHA[i];
+  bubble.textContent = L; bubble.style.top = Math.max(r.top + 28, Math.min(r.bottom - 28, y)) + 'px'; bubble.classList.add('on');
+  if (L === cur) return; cur = L;
+  const T = targetFor(L); if (!T) return;
+  let sec = document.getElementById('sec-' + T);
+  if (!sec) {   // not loaded yet: grow the window up to the end of that letter (the app would fetch to that offset)
+    let last = -1; hitsNow.forEach((m, i) => { if (letterOf(m) === T) last = i; });
+    shown = Math.ceil((last + 1) / WINDOW) * WINDOW; render(); sec = document.getElementById('sec-' + T);
+    sec && sec.classList.add('in');
+  }
+  if (sec) window.scrollTo(0, sec.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(root).getPropertyValue('--safe-top')) + $('#tools').offsetHeight) + 1);
+  if (navigator.vibrate) try { navigator.vibrate(4); } catch {}
+}
+idx.addEventListener('pointerdown', e => { e.preventDefault(); idx.setPointerCapture(e.pointerId); idx.classList.add('drag'); cur = null; scrubAt(e.clientY); });
+idx.addEventListener('pointermove', e => { if (idx.hasPointerCapture(e.pointerId)) scrubAt(e.clientY); });
+const endScrub = () => { idx.classList.remove('drag'); bubble.classList.remove('on'); cur = null; };
+idx.addEventListener('pointerup', endScrub); idx.addEventListener('pointercancel', endScrub); idx.addEventListener('lostpointercapture', endScrub);
 
 /* reveal once */
 let io;
@@ -432,7 +628,7 @@ document.addEventListener('pointerdown', e => { const p = e.target.closest('.pre
   addEventListener('pointerup', up); addEventListener('pointercancel', up); });
 
 /* glass header: one class toggle when the large title scrolls under the pills (no per-frame style writes) */
-function measure(){ root.style.setProperty('--tools-h', $('#tools').offsetHeight + 'px'); }
+function measure(){ root.style.setProperty('--tools-h', $('#tools').offsetHeight + 'px'); root.style.setProperty('--title-h', ($('#title').offsetHeight + 10) + 'px'); fitIndex(); }
 let stuck = null, tick = false;
 function onScroll(){ if (tick) return; tick = true; requestAnimationFrame(() => { tick = false;
   const s = scrollY > $('#title').offsetTop + $('#title').offsetHeight - parseFloat(getComputedStyle(root).getPropertyValue('--safe-top'));
@@ -446,7 +642,7 @@ addEventListener('message', e => { const d = e.data; if (!d || d.type !== 'pv-st
   applyTheme(); applyMotion(); });
 mqRed.addEventListener && mqRed.addEventListener('change', applyMotion);
 
-applyTheme(); applyMotion(); measure(); render(); onScroll();
+applyTheme(); applyMotion(); renderActive(); render(); onScroll();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
 })();
 </script>
