@@ -149,10 +149,17 @@ html.theme-anim body, html.theme-anim .card, html.theme-anim .panel, html.theme-
 .p-photo.done{filter:none}
 html.reduced .p-photo{filter:none}
 html.reduced .p-photo.in{transition:opacity .2s ease}
-.p-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block}
+.p-photo img{position:absolute;inset:0 0 auto 0;width:100%;height:var(--PH,100%);object-fit:cover;object-position:50% 30%;display:block}
 /* progressive "dissolve": two static pre-blurred copies, revealed by stacked masks (cheaper than 4 backdrop layers) */
 .p-photo .dis1{filter:blur(4px);-webkit-mask-image:linear-gradient(to bottom,transparent calc(100% - 270px),#000 calc(100% - 190px));mask-image:linear-gradient(to bottom,transparent calc(100% - 270px),#000 calc(100% - 190px))}
 .p-photo .dis2{filter:blur(16px) saturate(1.15);-webkit-mask-image:linear-gradient(to bottom,transparent calc(100% - 200px),#000 calc(100% - 100px));mask-image:linear-gradient(to bottom,transparent calc(100% - 200px),#000 calc(100% - 100px))}
+/* painted extension: the photo mirrored below its own bottom edge and blurred, so the hero runs
+   EXT px past the photo and the name + glass row sit on "more photo" instead of on the face */
+.p-photo .ext-wrap{position:absolute;left:0;right:0;top:calc(var(--PH) - 90px);bottom:0;overflow:hidden;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 80px);mask-image:linear-gradient(to bottom,transparent 0,#000 80px)}
+/* photo + its mirror, blurred ONCE into a bitmap by bakeExt() (no seam at the fold). A live CSS blur here
+   re-rasterised every scroll frame and dropped frames; the baked canvas is just a texture to the compositor */
+.p-photo .ext-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
 .p-photo .sblur{filter:blur(28px) saturate(1.4);transform:scale(1.08);opacity:0}
 .p-dim{position:absolute;left:0;right:0;bottom:0;height:min(340px,70%);
   background:linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,calc(.30 * var(--dim-k,1))) 45%,rgba(0,0,0,calc(.58 * var(--dim-k,1))) 100%)}
@@ -195,6 +202,21 @@ html[data-photo="none"] .hero-tap{display:none}
 .act .circ{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;position:relative;overflow:hidden;transform-origin:50% 50%}
 .act .circ svg.i{width:22px;height:22px}
 .act .lbl{font-size:12px;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 1px 2px rgba(0,0,0,.3);white-space:nowrap;letter-spacing:-.005em;transform-origin:50% 0}
+
+/* compact hero: one-line name, smaller glass row — keeps more of the photo visible */
+.hc{bottom:34px}
+.hc .badges{margin-bottom:8px;gap:6px}
+.hc .cap{height:22px;padding:0 9px;font-size:11.5px}
+.hc .name.one{white-space:nowrap}
+.hc .name.one span{display:inline}
+.hc .name.one span + span::before{content:" "}
+.hc .meta{margin-top:6px;font-size:13px}
+.hc .meta .yr{font-size:12px}
+.hc .actions{margin-top:12px;gap:6px}
+.hc .act{gap:4px;min-height:0}
+.hc .act .circ{width:50px;height:50px}
+.hc .act .circ svg.i{width:21px;height:21px}
+.hc .act .lbl{font-size:11.5px}
 
 /* glass (Apple "clear" variant — only on the poster + chrome, never on content cards) */
 .glass{background:rgba(255,255,255,.14);
@@ -514,6 +536,7 @@ html.reduced .viewer img{transform:none}
         <img class="sharp" alt="" fetchpriority="high" decoding="async">
         <img class="dis1" alt="" decoding="async">
         <img class="dis2" alt="" decoding="async">
+        <div class="ext-wrap"><canvas class="ext-cv" id="extCv"></canvas></div>
         <img class="sblur" id="pBlur" alt="" decoding="async">
       </div>
       <div class="p-mesh"></div>
@@ -1097,7 +1120,8 @@ function applyPhoto(){
   $('#viewerImg').src = p.src;
   const sharp = imgs[0];
   const reveal = () => { if (tok !== photoToken) return; requestAnimationFrame(() => { el.photo.classList.add('in'); setTimeout(() => tok === photoToken && el.photo.classList.add('done'), 360); }); };
-  (sharp.decode ? sharp.decode() : Promise.resolve()).then(reveal, reveal);
+  const ready = () => { if (tok === photoToken) bakeExt(sharp); reveal(); };
+  (sharp.decode ? sharp.decode() : Promise.resolve()).then(ready, ready);
 }
 function applyTheme(animate){
   if (animate) { root.classList.add('theme-anim'); clearTimeout(applyTheme.t); applyTheme.t = setTimeout(() => root.classList.remove('theme-anim'), 400); }
@@ -1132,27 +1156,68 @@ function applyView(){
 function applyAll(animateTheme){ applyMotion(); applyTheme(animateTheme); applyAdmin(); applyView(); applyPhoto(); layout(); }
 
 /* ---------- layout (measure once + on resize; never inside the frame) ---------- */
+const EXT_FADE = 90;   // .ext-wrap starts this far above the photo's bottom edge and fades in over it
+/* Blur the photo + its mirror below PH into the strip canvas, once per photo / size.
+   ctx.filter where supported (Chrome, Safari 18+); else downscale-upscale, which blurs the same way. */
+function bakeExt(img){
+  const cv = $('#extCv'); if (!cv || !img || !img.naturalWidth || !S.PH) return;
+  const W = cv.parentElement.clientWidth, PH = S.PH, top = PH - EXT_FADE, h = S.H - top;
+  const key = [img.src, W, PH, S.H].join('|'); if (cv.dataset.key === key) return;
+  const pad = 60, full = document.createElement('canvas');
+  full.width = W + pad * 2; full.height = PH * 2;
+  const f = full.getContext('2d');
+  const k = Math.max(W / img.naturalWidth, PH / img.naturalHeight);
+  const dw = img.naturalWidth * k, dh = img.naturalHeight * k, dx = pad + (W - dw) / 2, dy = (PH - dh) * .3;  // = object-position 50% 30%
+  f.drawImage(img, dx - pad, dy, dw + pad * 2, dh);            // stretched a little sideways so the pad has pixels
+  f.drawImage(img, dx, dy, dw, dh);
+  f.save(); f.translate(0, PH * 2); f.scale(1, -1);
+  f.drawImage(img, dx - pad, dy, dw + pad * 2, dh); f.drawImage(img, dx, dy, dw, dh);
+  f.restore();
+  cv.width = W; cv.height = h;
+  const c = cv.getContext('2d');
+  if (typeof c.filter === 'string') {
+    c.filter = 'blur(26px) saturate(1.2)';
+    c.drawImage(full, -pad, -top);
+    c.filter = 'none';
+  } else {
+    const q = 1 / 14, sm = document.createElement('canvas');
+    sm.width = Math.ceil(full.width * q); sm.height = Math.ceil(full.height * q);
+    const s2 = sm.getContext('2d'); s2.imageSmoothingQuality = 'high';
+    s2.drawImage(full, 0, 0, sm.width, sm.height);
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(sm, -pad, -top, full.width, full.height);
+  }
+  cv.dataset.key = key;
+}
+const HERO_EXT = 88;   // blurred "painted" strip below the photo; the hero text lives mostly on it
 function computeH(){
   const W = Math.min(innerWidth, 430);
   const p = photos()[state.photo];
   if (!p) return state.view === 'other' ? 488 : 420;   // other: monogram carries the Написати/Подзвонити row too
   const r = Math.min(1.5, Math.max(1.35, p.r));
-  return Math.round(Math.min(W * r, 0.72 * innerHeight));
+  S.PH = Math.round(Math.min(W * r, 0.72 * innerHeight));
+  return S.PH + HERO_EXT;
 }
 function fitName(){
   const h = $(`.hc[data-mode="${mode()}"] .name`); if (!h) return;
   h.classList.remove('wrap');
   const avail = h.parentElement.clientWidth;
+  // compact hero: first + last name on one line, 34 → 26px; only a long name falls back to two lines
+  h.classList.add('one');
+  let fs = 34;
+  for (; fs >= 26; fs -= 2) { h.style.fontSize = fs + 'px'; if (h.scrollWidth <= avail) break; }
+  if (fs >= 26) return;
+  h.classList.remove('one');
   const spans = $$('span', h);
-  let fs = 44;
-  for (; fs >= 32; fs -= 2) { h.style.fontSize = fs + 'px'; if (spans.every(s => s.scrollWidth <= avail)) break; }
-  if (fs < 32) { h.style.fontSize = '32px'; h.classList.add('wrap'); }
+  for (fs = 32; fs >= 26; fs -= 2) { h.style.fontSize = fs + 'px'; if (spans.every(s => s.scrollWidth <= avail)) break; }
+  if (fs < 26) { h.style.fontSize = '26px'; h.classList.add('wrap'); }
 }
 function docTop(n){ let t = 0; while (n) { t += n.offsetTop; n = n.offsetParent; } return t; }
 function layout(){
   S.H = computeH();
   root.style.setProperty('--H', S.H + 'px');
-  if (state.photo !== 'none') fitName();
+  root.style.setProperty('--PH', (state.photo !== 'none' && photos()[state.photo] ? S.PH : S.H) + 'px');
+  if (state.photo !== 'none') { fitName(); bakeExt($('#pPhoto img.sharp')); }
   // reads
   const groups = new Map();
   $$('[data-fg]').forEach(n => {
